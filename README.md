@@ -7,8 +7,19 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Extras:** palettes, cover art, title text, grayscale mode and film grain.
 
+## Gallery
+
+All rendered from the same track at default settings, square format. The last one is a scene change: vines flashing into occult right on the drop.
+
+| <img src="docs/gifs/bars.gif" width="200" alt="bars"> | <img src="docs/gifs/radial.gif" width="200" alt="radial"> | <img src="docs/gifs/wave.gif" width="200" alt="wave"> | <img src="docs/gifs/particles.gif" width="200" alt="particles"> |
+|:---:|:---:|:---:|:---:|
+| `-s bars` | `-s radial` | `-s wave` | `-s particles` |
+| <img src="docs/gifs/occult.gif" width="200" alt="occult"> | <img src="docs/gifs/industrial.gif" width="200" alt="industrial"> | <img src="docs/gifs/vines.gif" width="200" alt="vines"> | <img src="docs/gifs/scene.gif" width="200" alt="scene"> |
+| `-s occult -P symbol=cycle` | `-s industrial` | `-s vines` | `--scene …=occult,transition=flash` |
+
 ## Contents
 
+- [Gallery](#gallery)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Ready-made commands](#ready-made-commands)
@@ -307,6 +318,8 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`.
 
 ### `bars`: mirrored spectrum bars
+
+<img src="docs/gifs/bars.gif" width="260" alt="bars style">
 | param | default | |
 |---|---|---|
 | `bars` | 48 | Bars per side |
@@ -318,6 +331,8 @@ Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`
 | `glow` | 1 | Glow strength, 0 = off |
 
 ### `radial`: circular spectrum around the cover
+
+<img src="docs/gifs/radial.gif" width="260" alt="radial style">
 | param | default | |
 |---|---|---|
 | `bars` | 90 | Bars per half circle |
@@ -329,6 +344,8 @@ Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`
 | `ring` | 1 | Outer loudness ring, 0 = hide |
 
 ### `wave`: neon oscilloscope with trails
+
+<img src="docs/gifs/wave.gif" width="260" alt="wave style">
 | param | default | |
 |---|---|---|
 | `amp` | 0.22 | Wave height |
@@ -341,6 +358,8 @@ Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`
 | `radius` | 0.28 | Circle size when `shape=circle` |
 
 ### `particles`: bursts on every hit
+
+<img src="docs/gifs/particles.gif" width="260" alt="particles style">
 | param | default | |
 |---|---|---|
 | `burst` | 90 | Particles per hit |
@@ -354,6 +373,8 @@ Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`
 | `max` | 3000 | Particle cap |
 
 ### `occult`: sigil in a rune circle
+
+<img src="docs/gifs/occult.gif" width="260" alt="occult style">
 A glowing symbol in the centre of a rotating magic circle. The 24 Elder Futhark runes light up with their slice of the spectrum, spectrum ticks point inward, and alchemical symbols drift in the dark and flare on hits. Uses the `blood` palette unless you pass `-p` (or `-g`).
 
 | param | default | |
@@ -370,6 +391,8 @@ A glowing symbol in the centre of a rotating magic circle. The 24 Elder Futhark 
 | `flicker` | 1 | Candle flicker, 0 = steady |
 
 ### `industrial`: machine room
+
+<img src="docs/gifs/industrial.gif" width="260" alt="industrial style">
 A big gear meshed with two smaller ones. It turns with the loudness and ratchets forward one tooth on every kick, throwing sparks where the teeth meet. Inside it sits a segmented LED spectrum meter. Above it, hydraulic pistons pump with the frequency bands. Around it: scrolling hazard stripes, a blueprint grid, scanlines, a camera jolt on kicks, and a monospace HUD (RPM, load, PSI, dominant frequency, timecode, `STATUS IMPACT`). Uses the `hazard` palette unless you pass `-p` (or `-g`).
 
 | param | default | |
@@ -387,6 +410,8 @@ A big gear meshed with two smaller ones. It turns with the loudness and ratchets
 | `strobe` | 0 | White flash on hard kicks (0–1) |
 
 ### `vines`: entangling overgrowth
+
+<img src="docs/gifs/vines.gif" width="260" alt="vines style">
 Deep green vines creep in from the edges and wind around the centre in opposite directions, weaving over and under each other into a living wreath. They grow faster when the track gets louder. Every kick sprouts side shoots and spiralling tendrils. Leaves swell with their own slice of the spectrum, glowing flowers open on transients, and fireflies drift up behind. Three depth layers (dark, mid, bright and glossy) give it depth. When it gets too dense, the oldest vines wither back and new ones creep in. Uses the `verdant` palette unless you pass `-p` (or `-g`).
 
 | param | default | |
