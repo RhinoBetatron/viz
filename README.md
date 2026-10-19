@@ -9,8 +9,8 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 
 ## Contents
 
-- [Quick start](#quick-start)
-- [Setup (one time)](#setup-one-time)
+- [Installation](#installation)
+- [Usage](#usage)
 - [Ready-made commands](#ready-made-commands)
 - [Every option](#every-option)
 - [Styles and their --param settings](#styles-and-their---param-settings)
@@ -22,31 +22,115 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 - [Project layout](#project-layout)
 - [Troubleshooting](#troubleshooting)
 
-## Quick start
+## Installation
 
-Turn a `.wav` (or `.aiff` / `.flac` / `.mp3`) into an audio-reactive MP4 that's ready to upload to Instagram.
+### 1. Requirements
+
+| | |
+|---|---|
+| **Node.js 20 or newer** | Check with `node --version`. Install with [nvm](https://github.com/nvm-sh/nvm) (`nvm install --lts`) or `brew install node` |
+| **ffmpeg** | Decodes the audio and encodes the video. `brew install ffmpeg` (Linux: `sudo apt install ffmpeg`) |
+| **git** | To download the code. Comes with the Xcode command line tools on macOS |
+
+Made and tested on macOS. Linux and Windows should work as long as `ffmpeg` is on your `PATH`, but `--open` only works on macOS.
+
+### 2. Download and install
 
 ```bash
-viz track.wav                         # 15s "bars" Reel from the start of the track
-viz track.wav -s radial -c cover.jpg  # circular spectrum around your cover art
+git clone https://github.com/RhinoBetatron/viz.git
+cd viz
+npm install      # installs the three dependencies (commander, fft.js, skia-canvas)
+npm link         # makes the `viz` command available in every folder
 ```
 
-The output lands next to the input as `track_<style>.mp4`.
+The repo is private, so cloning asks you to log in to GitHub. If you have the GitHub CLI, `gh repo clone RhinoBetatron/viz` works too.
+
+### 3. Check it works
+
+```bash
+viz --version        # → 0.1.0
+viz --list-styles    # every style and its settings
+```
+
+### Updating
+
+```bash
+cd viz
+git pull
+npm install          # only needed if dependencies changed
+```
+
+Because `npm link` points at this folder, any changes (yours or pulled) take effect right away. You don't need to reinstall.
+
+### Uninstalling
+
+```bash
+npm unlink -g viz    # removes the global command
+```
+
+Then delete the folder.
+
+### Install gotchas
+
+- **Moved the folder?** Run `npm link` again from the new location.
+- **Using nvm?** The link only exists for the Node version that was active when you ran `npm link`. If `viz` says `command not found` after switching Node versions, run `npm install && npm link` in the folder again.
+- **No global install wanted?** Run it in place with `node bin/viz.js track.wav …`.
 
 ---
 
-## Setup (one time)
+## Usage
 
-```bash
-brew install ffmpeg        # needed for decoding + encoding
-npm install                # in this folder
-npm link                   # makes `viz` available everywhere
+```
+viz <audio file or folder> [options]
 ```
 
-Undo the global install with `npm unlink -g viz`. Check it's installed with `viz --version`.
+Give it a `.wav`, `.aiff`, `.flac`, `.mp3` or `.m4a` file. You get an MP4 next to it, named `<track>_<style>.mp4`. By default that's a 15-second, 9:16 Reel from the start of the track.
 
-- `npm link` points the global `viz` at **this folder**, so edits take effect immediately. If you move the folder, run `npm link` again from the new location.
-- With nvm, the link only exists for the current Node version. If `viz` suddenly says `command not found` after switching Node versions, run `npm install && npm link` here again.
+```bash
+viz track.wav                         # 15s "bars" Reel from the start of the track
+viz track.wav -s vines --open         # another style, and open the video when done
+viz track.wav -s radial -c cover.jpg  # circular spectrum around your cover art
+```
+
+### A typical workflow
+
+1. **Pick the moment.** Choose where the teaser starts and how long it runs. Starting just before the drop works well for Instagram:
+   ```bash
+   viz track.wav --start 1:05 -d 20
+   ```
+2. **Pick a look.** Choose a style (`-s`), a palette (`-p`) and optionally cover art (`-c`) and text (`-t`, `--subtitle`). Run `viz --list-styles` and `viz --list-palettes` to see what's available.
+3. **Preview fast.** Add `--preview` to render a quick half-resolution draft. Without scene changes it's capped at 5s.
+   ```bash
+   viz track.wav --start 1:05 -d 20 -s occult -p candle --preview --open
+   ```
+4. **Tweak the style.** Pass settings with `-P key=value`, repeating it for more than one:
+   ```bash
+   viz track.wav -s occult -P symbol=eye -P spin=0.06 --preview --open
+   ```
+5. **Render the real thing.** Drop `--preview`. Use `-f feed` (4:5) or `-f square` for feed posts, and `-f landscape` for YouTube.
+6. **Upload.** AirDrop the MP4 to your phone and post it.
+
+### Switching styles during a video
+
+- **By hand:** `--scene <time>=<style>` changes the style at a point in the track:
+  ```bash
+  viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial,transition=flash
+  ```
+- **Automatically:** `--analyze` finds the intro, drops and breakdowns and prints a command for them. `--auto` renders the whole track with styles switching on their own:
+  ```bash
+  viz track.wav --analyze
+  viz track.wav --auto vines,occult --open
+  ```
+
+### Many tracks at once
+
+Give it a folder instead of a file to render every audio file in it with the same settings:
+
+```bash
+viz ./teasers -s radial -p sunset -d 15
+```
+
+Everything below is the full reference: ready-made commands, every option and every style setting.
 
 ---
 
