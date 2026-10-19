@@ -14,6 +14,7 @@ export const palettes = {
   candle: { bg: ['#050403', '#140e07'], colors: ['#5e4320', '#d9a441', '#fff1c1'], accent: '#ffad42', text: '#f3e6c8' },
   hazard: { bg: ['#0a0a0a', '#17150f'], colors: ['#4a4a48', '#f5a000', '#ffe14d'], accent: '#ff9500', text: '#e6e6e6' },
   steel:  { bg: ['#07090b', '#121820'], colors: ['#46525c', '#4fc3ff', '#e6f6ff'], accent: '#4fc3ff', text: '#dfe8ee' },
+  spectral: { bg: ['#020608', '#071a1f'], colors: ['#0e3a42', '#2fa39a', '#a8fff0'], accent: '#7dffe3', text: '#e2fff9' },
   verdant: { bg: ['#010a04', '#03190b'], colors: ['#06451b', '#0b8a31', '#16d24f', '#8dff4a'], accent: '#22ff66', text: '#e2ffe6' },
 };
 

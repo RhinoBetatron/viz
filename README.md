@@ -2,22 +2,24 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Extras:** palettes, cover art, title text, grayscale mode, ASCII-art mode and film grain.
 
 ## Gallery
 
-All rendered from the same track at default settings, square format. The last one is a scene change: vines flashing into occult right on the drop.
+All rendered from the same track, square format. The first three rows are each style at default settings. The last row shows a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
 | `-s bars` | `-s radial` | `-s wave` |
 | <img src="docs/gifs/particles.gif" width="260" alt="particles"> | <img src="docs/gifs/occult.gif" width="260" alt="occult"> | <img src="docs/gifs/industrial.gif" width="260" alt="industrial"> |
 | `-s particles` | `-s occult -P symbol=cycle` | `-s industrial` |
-| <img src="docs/gifs/vines.gif" width="260" alt="vines"> | <img src="docs/gifs/hands.gif" width="260" alt="hands"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> |
-| `-s vines` | `-s hands` | `--scene …=occult,transition=flash` |
+| <img src="docs/gifs/vines.gif" width="260" alt="vines"> | <img src="docs/gifs/hands.gif" width="260" alt="hands"> | <img src="docs/gifs/ghostship.gif" width="260" alt="ghostship"> |
+| `-s vines` | `-s hands` | `-s ghostship` |
+| <img src="docs/gifs/scene.gif" width="260" alt="scene"> | <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands rotating"> | <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii"> |
+| `--scene …=occult,transition=flash` | `-s hands -P rotate=0.25` | `-s hands --ascii 16` |
 
 ## Contents
 
@@ -200,6 +202,12 @@ viz TRACK.wav -s hands -P hands=0 -P ash=80 -g -d 15 --open
 # Turning: hands slowly rotating in 3D as they grasp
 viz TRACK.wav -s hands -P rotate=0.25 -g -d 20 --open
 
+# Ghost ship: a phantom galleon rocking on the soundwave
+viz TRACK.wav -s ghostship -d 20 --open
+
+# Storm: rough sea, heavy rocking, frequent lightning
+viz TRACK.wav -s ghostship -P rock=2 -P swell=1.6 -P lightning=3 -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -298,14 +306,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`, `spectral` for `ghostship`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -477,6 +485,30 @@ A pale hand rises from the bottom, seen three-quarter on, and clenches into a cl
 | `ash` | 50 | Drifting ash specks, 0 = off |
 | `rotate` | 0 | Spin the hands in 3D, in turns per second (try `0.1`–`0.5`, negative = other way). The centre hand turns like a turntable (palm → edge → back with nails), and the side hands roll around their arms at their own pace |
 
+### `ghostship`: ghost ship on the soundwaves
+
+<img src="docs/gifs/ghostship.gif" width="260" alt="ghostship style">
+
+A small translucent galleon drifts on a moonlit sea, and the surface of that sea is the soundwave itself: every crest line carries the live waveform on top of a slow swell that heaves with the bass. The ship rides the wave under it, pitching with the slope and bobbing on the swell. Every kick knocks it down and over, and it rocks back on a spring. Its tattered sails billow with the mids and flutter with the highs. On transients it flickers and doubles like a bad signal, and on each kick a faint ghost of the ship lifts off it. The gunports and lanterns glow with the music, spirit lights drift up from the deck, spray flies off the bow, fog rolls over the water and moonlight breaks on the waves. Big hits sometimes call down lightning. Uses the `spectral` palette (ghostly teal) unless you pass `-p` (or `-g`).
+
+| param | default | |
+|---|---|---|
+| `size` | 1 | Ship size |
+| `rock` | 1 | How much the ship pitches and bobs (try `2` for a storm) |
+| `swell` | 1 | Height of the slow swell, driven by the bass |
+| `chop` | 1 | How much of the raw waveform shows in the sea surface |
+| `waves` | 5 | Sea layers, 2–6 |
+| `speed` | 1 | How fast the swell rolls |
+| `sails` | 1 | How tattered the sails are, 0 = whole |
+| `flicker` | 1 | Ghostly flicker and doubling on transients, 0 = steady |
+| `echo` | 1 | Fading ghosts of the ship rising off it on kicks, 0 = off |
+| `wisps` | 18 | Spirit lights rising from the deck, 0 = off |
+| `spray` | 1 | Spray off the bow on kicks, 0 = off |
+| `fog` | 1 | Fog banks drifting over the water, 0 = off |
+| `moon` | 1 | Moon size, 0 = no moon |
+| `stars` | 90 | Stars in the sky |
+| `lightning` | 1 | Chance of lightning on big hits, 0 = off, 2–3 = stormy |
+
 ---
 
 ## ASCII mode: `--ascii`
@@ -530,7 +562,7 @@ viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial
 
 **How it works:**
 - A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash` or `cut`.
-- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom).
+- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom, `ghostship` → spectral).
 - `-g`, `--grain`, `--cover`, `--title` and fades apply to the whole video.
 - Each scene keeps its own state, so the gears keep their position, and the same style can come back later.
 - The default filename lists the styles: `track_wave-industrial-occult.mp4`.
@@ -644,6 +676,15 @@ viz track.wav -s hands -P grip=0.6 -P tremble=2            # gentler grip, nervo
 viz track.wav -s hands -P rotate=0.25                      # hands slowly turning in 3D
 viz track.wav -s hands -P rotate=-0.6 -P hands=10          # fast reverse spin, crowd of arms
 viz track.wav --auto hands,occult                          # hands in the calm parts, sigils on drops
+
+# Ghost ship
+viz track.wav -s ghostship                                 # teal ghost ship on a moonlit sea
+viz track.wav -s ghostship -P rock=2 -P lightning=3        # storm
+viz track.wav -s ghostship -P sails=0 -P flicker=0 -p ice  # intact, steady, icy blue
+viz track.wav -s ghostship -g --grain 14                   # b&w old film
+viz track.wav -s ghostship -P size=0.6 -P waves=6          # tiny ship on a big sea
+viz track.wav -s ghostship --ascii                         # ASCII ship on ASCII waves
+viz track.wav --auto ghostship,occult                      # sailing in the calm parts, sigils on drops
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art
