@@ -68,6 +68,12 @@ viz TRACK.wav -s vines -d 20 --open
 
 # Thorned: darker, thornier vines, no fireflies
 viz TRACK.wav -s vines -P thorns=1.5 -P spores=0 -P leaves=0.7 -d 20 --open
+
+# Grasp: a pale hand clenching on every kick, arms reaching in from the dark
+viz TRACK.wav -s hands -g -d 20 --open
+
+# Lone hand: just the grasping hand in falling ash
+viz TRACK.wav -s hands -P hands=0 -P ash=80 -g -d 15 --open
 ```
 
 ### Scene chains (calm intro → intense)
@@ -105,6 +111,10 @@ viz TRACK.wav -c COVER.jpg -t "NEW SINGLE" --subtitle "OUT FRIDAY" -d 25 -s radi
 
 # Overgrowth → ritual: vines creep in, dip to black into a blood-red sigil
 viz TRACK.wav -d 30 -s vines \
+  --scene +15=occult,transition=black --open
+
+# Reaching → ritual: hands reach in, dip to black into an occult sigil (all b&w)
+viz TRACK.wav -d 30 -s hands -g \
   --scene +15=occult,transition=black --open
 
 # Jungle machine: vines intro, flash into a green-tinted machine room
@@ -157,14 +167,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
 | `-c, --cover <image>` | Cover art: blurred background, plus the centre of `radial` | |
@@ -299,6 +309,22 @@ Deep green vines creep in from the edges and wind around the centre in opposite 
 | `pregrow` | 2 | Seconds of growth already on screen at frame 1, 0 = grow from nothing |
 | `max` | 7000 | Density before old vines wither back |
 
+### `hands`: grasping hands
+A pale hand rises from the bottom, seen three-quarter on, and clenches into a claw on every kick before letting go again. Arms reach in from the dark around it, sliding in and out with the music. They lunge and grab on kicks, open their fingers as they reach, and twitch with the high frequencies. The hands are 3D models (palm, jointed fingers, thumb) shaded like bare mannequin limbs. The arms fade into the dark, and on each kick a ghost of the centre hand expands outward. Ash drifts down through the frame. Uses the `gloom` palette (greyscale) unless you pass `-p`. Add `-g` for film grain.
+
+| param | default | |
+|---|---|---|
+| `hands` | 6 | Arms reaching in around the edge, 0 = only the centre hand |
+| `grip` | 1 | How hard the hands clench on kicks |
+| `reach` | 1 | How far the side hands reach in |
+| `speed` | 1 | How fast the side hands move |
+| `tremble` | 1 | Finger twitching with the highs, 0 = still |
+| `scale` | 1 | Size of all hands |
+| `center` | 1 | Centre hand, 0 = hide |
+| `palm` | auto | Centre hand: `auto` shows the palm, `back` shows the back of the hand (with nails) |
+| `echo` | 1 | Ghost of the centre hand on each kick, 0 = off |
+| `ash` | 50 | Drifting ash specks, 0 = off |
+
 ---
 
 ## Scenes: blending between styles
@@ -331,7 +357,7 @@ viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial
 
 **How it works:**
 - A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash` or `cut`.
-- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant).
+- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom).
 - `-g`, `--grain`, `--cover`, `--title` and fades apply to the whole video.
 - Each scene keeps its own state, so the gears keep their position, and the same style can come back later.
 - The default filename lists the styles: `track_wave-industrial-occult.mp4`.
@@ -435,6 +461,14 @@ viz track.wav -s vines -P pregrow=0 -P growth=1.5          # starts empty, grows
 viz track.wav -s vines -P thorns=2 -p blood                # blood-red thorned vines
 viz track.wav -s vines -P branch=4 -P vines=10 -P max=10000   # dense jungle
 viz track.wav -s vines -g --grain 12                       # b&w dead garden
+
+# Hands
+viz track.wav -s hands                                     # grey hands reaching from the dark
+viz track.wav -s hands -g --grain 16                       # grainy b&w film look
+viz track.wav -s hands -P palm=back -P hands=10            # back of the hand, crowd of arms
+viz track.wav -s hands -p blood                            # blood-lit hands
+viz track.wav -s hands -P grip=0.6 -P tremble=2            # gentler grip, nervous twitching
+viz track.wav --auto hands,occult                          # hands in the calm parts, sigils on drops
 
 # Colour, but with a film-grain texture
 viz track.wav -s wave -p sunset --grain 12
