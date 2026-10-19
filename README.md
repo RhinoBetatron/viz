@@ -5,7 +5,7 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 - **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
-- **Extras:** palettes, cover art, title text, grayscale mode and film grain.
+- **Extras:** palettes, cover art, title text, grayscale mode, ASCII-art mode and film grain.
 
 ## Gallery
 
@@ -27,6 +27,7 @@ All rendered from the same track at default settings, square format. The last on
 - [Ready-made commands](#ready-made-commands)
 - [Every option](#every-option)
 - [Styles and their --param settings](#styles-and-their---param-settings)
+- [ASCII mode: --ascii](#ascii-mode---ascii)
 - [Scenes: blending between styles](#scenes-blending-between-styles)
 - [Automatic sections: --analyze / --auto](#automatic-sections---analyze----auto)
 - [Recipes](#recipes)
@@ -195,6 +196,12 @@ viz TRACK.wav -s hands -g -d 20 --open
 
 # Lone hand: just the grasping hand in falling ash
 viz TRACK.wav -s hands -P hands=0 -P ash=80 -g -d 15 --open
+
+# Terminal: grasping hands redrawn as ASCII art
+viz TRACK.wav -s hands --ascii -d 20 --open
+
+# ASCII release teaser: big-character occult sigil with a title
+viz TRACK.wav -s occult -P symbol=cycle --ascii 14 -t "NEW SINGLE" -d 20 --open
 ```
 
 ### Scene chains (calm intro → intense)
@@ -297,6 +304,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
 | `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
+| `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
 | `-c, --cover <image>` | Cover art: blurred background, plus the centre of `radial` | |
 | `--bg <mode>` | `gradient`, `cover`, `black` | `cover` if `--cover` is set, else `gradient` |
@@ -464,6 +472,27 @@ A pale hand rises from the bottom, seen three-quarter on, and clenches into a cl
 
 ---
 
+## ASCII mode: `--ascii`
+
+| <img src="docs/gifs/ascii_hands.gif" width="200" alt="hands in ascii"> | <img src="docs/gifs/ascii_vines.gif" width="200" alt="vines in ascii"> | <img src="docs/gifs/ascii_occult.gif" width="200" alt="occult in ascii"> | <img src="docs/gifs/ascii_wave.gif" width="200" alt="wave in ascii"> |
+|:---:|:---:|:---:|:---:|
+| `-s hands --ascii 16` | `-s vines --ascii 16` | `-s occult --ascii 16` | `-s wave --ascii 16` |
+
+`--ascii` redraws any style (or scene chain) as greyscale ASCII art. Each frame is split into a grid of character cells, and each cell's brightness picks a character from ` .:-=+*#%@` and a matching grey. It goes on top of everything: styles, scene transitions, cover art. Titles stay as crisp text above it. The background is detected per frame and left as empty black, so only the visual itself turns into characters.
+
+```bash
+viz track.wav -s hands --ascii            # 10px characters (at 1080p)
+viz track.wav -s occult --ascii 16        # bigger, chunkier characters
+viz track.wav -s wave --ascii 6           # fine detail
+```
+
+- The optional number is the character width in px at 1080p, so smaller numbers mean more, finer characters. The default is 10, which gives about 108 columns.
+- It's always greyscale, whatever the palette. Palettes still matter: brighter parts of the style become denser characters.
+- Works with `--scene`, `--auto`, `--grain`, `--preview` and every format. The filename gets `_ascii` added.
+- Thin, dim styles (`occult`, `bars`) come out faint at small sizes. Try `--ascii 14` or bigger.
+
+---
+
 ## Scenes: blending between styles
 
 Start calm and bring in the heavy stuff later. `-s` is the opening style, and each `--scene` switches to a new style at a **track time** (the same clock as `--start`, not the time into the clip).
@@ -606,6 +635,13 @@ viz track.wav -s hands -P palm=back -P hands=10            # back of the hand, c
 viz track.wav -s hands -p blood                            # blood-lit hands
 viz track.wav -s hands -P grip=0.6 -P tremble=2            # gentler grip, nervous twitching
 viz track.wav --auto hands,occult                          # hands in the calm parts, sigils on drops
+
+# ASCII
+viz track.wav -s wave --ascii                              # any style as ASCII art
+viz track.wav -s wave --ascii 6                            # fine, dense characters
+viz track.wav -s particles --ascii 20                      # chunky, big characters
+viz track.wav -s industrial --ascii --grain 12             # ASCII with film grain
+viz track.wav --ascii --auto vines,occult                  # whole track, auto scenes, all ASCII
 
 # Colour, but with a film-grain texture
 viz track.wav -s wave -p sunset --grain 12

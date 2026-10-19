@@ -102,6 +102,90 @@ function drawText(ctx, env, title, subtitle, font) {
   ctx.restore();
 }
 
+// ASCII overlay: the finished frame is redrawn as characters, each cell's
+// brightness picking a denser glyph and a lighter grey.
+const ASCII_RAMP = ' .:-=+*#%@';
+const ASCII_FONT = 'Menlo, monospace';
+
+function makeAscii(width, height, cell, createCanvas) {
+  const probe = createCanvas(10, 10).getContext('2d');
+  probe.font = `100px ${ASCII_FONT}`;
+  const fontSize = (cell / probe.measureText('M').width) * 100; // one character per cell
+  const cellH = Math.round(fontSize * 1.05);
+  const cols = Math.ceil(width / cell), rows = Math.ceil(height / cellH);
+  const levels = ASCII_RAMP.length;
+  const greys = Array.from({ length: levels }, (_, i) => {
+    const v = Math.round(40 + 215 * (i / (levels - 1)) ** 0.8);
+    return `rgb(${v},${v},${v})`;
+  });
+  const SUB = 3; // 3×3 samples per cell, so thin bright lines aren't averaged away
+  const small = createCanvas(cols * SUB, rows * SUB);
+  const lines = Array.from({ length: levels }, () => new Array(rows));
+  const lums = new Float32Array(cols * rows);
+  let blackPoint = null;
+  return function apply(canvas) {
+    small.width = cols * SUB; // reset the recording, see util.flatten
+    const sctx = small.getContext('2d');
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(canvas, 0, 0, cols * SUB, rows * SUB);
+    const { data } = sctx.getImageData(0, 0, cols * SUB, rows * SUB);
+    const stride = cols * SUB * 4;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        // Brightness = mix of the cell's average and its brightest sample, so
+        // thin lines survive. Luma/max blend so saturated colours still count.
+        let sum = 0, peak = 0;
+        for (let sy = 0; sy < SUB; sy++) {
+          for (let sx = 0; sx < SUB; sx++) {
+            const i = (r * SUB + sy) * stride + (c * SUB + sx) * 4;
+            const R = data[i], G = data[i + 1], B = data[i + 2];
+            const v = (0.5 * (0.2126 * R + 0.7152 * G + 0.0722 * B) + 0.5 * Math.max(R, G, B)) / 255;
+            sum += v;
+            if (v > peak) peak = v;
+          }
+        }
+        lums[r * cols + c] = 0.45 * (sum / (SUB * SUB)) + 0.55 * peak;
+      }
+    }
+    // The background (whatever most of the frame is) becomes empty space.
+    // Smoothed over time so it doesn't pump.
+    const median = Float32Array.from(lums).sort()[lums.length >> 1];
+    const target = Math.max(0.09, median + 0.05);
+    blackPoint = blackPoint === null ? target : blackPoint + (target - blackPoint) * 0.1;
+    const range = 1 - blackPoint;
+
+    // One string per row per brightness level: spaces everywhere else.
+    const row = new Array(cols);
+    for (let r = 0; r < rows; r++) {
+      const lv = new Uint8Array(cols);
+      for (let c = 0; c < cols; c++) {
+        const x = Math.max(0, Math.min(1, ((lums[r * cols + c] - blackPoint) / range) * 1.1));
+        lv[c] = Math.min(levels - 1, Math.floor(x ** 0.85 * levels));
+      }
+      for (let l = 1; l < levels; l++) {
+        let any = false;
+        for (let c = 0; c < cols; c++) {
+          if (lv[c] === l) { row[c] = ASCII_RAMP[l]; any = true; } else row[c] = ' ';
+        }
+        lines[l][r] = any ? row.join('') : null;
+      }
+    }
+
+    canvas.width = width;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    ctx.font = `${fontSize}px ${ASCII_FONT}`;
+    ctx.textBaseline = 'top';
+    for (let l = 1; l < levels; l++) {
+      ctx.fillStyle = greys[l];
+      for (let r = 0; r < rows; r++) if (lines[l][r]) ctx.fillText(lines[l][r], 0, r * cellH);
+    }
+    return ctx;
+  };
+}
+
 export const transitions = ['fade', 'black', 'flash', 'cut'];
 
 const smoothstep = (x) => x * x * (3 - 2 * x);
@@ -144,7 +228,7 @@ export async function render(opts) {
   const {
     input, output, width, height, fps = 30, start = 0, duration,
     cover: coverPath, background, title, subtitle, scenes: sceneSpecs,
-    fade = true, crf = 18, preset = 'medium', seed = 1, grayscale = false, grain,
+    fade = true, crf = 18, preset = 'medium', seed = 1, grayscale = false, grain, ascii = 0,
     font = '"Helvetica Neue", Helvetica, Arial, sans-serif', gpu = false, onStage, onProgress,
   } = opts;
 
@@ -159,6 +243,7 @@ export async function render(opts) {
   let ctx = canvas.getContext('2d');
   const layer = createCanvas(width, height); // second scene during a crossfade
   const tall = height / width > 1.5;
+  const asciiPass = ascii > 0 ? makeAscii(width, height, ascii * (Math.min(width, height) / 1080), createCanvas) : null;
   const bgMode = background ?? (cover ? 'cover' : 'gradient');
 
   // Each scene gets its own style instance (styles keep state on `this`),
@@ -241,8 +326,12 @@ export async function render(opts) {
       ctx.fillRect(0, 0, width, height);
     }
 
+    if (asciiPass) ctx = asciiPass(canvas);
+
     const textScene = b && mix > 0.5 ? b : a;
-    drawText(ctx, textScene.env, title, subtitle, font);
+    // Keep titles grey too in ASCII mode.
+    const textEnv = asciiPass ? { ...textScene.env, palette: { ...textScene.env.palette, text: '#e6e6e6' } } : textScene.env;
+    drawText(ctx, textEnv, title, subtitle, font);
 
     if (fade) {
       const t = frame.time;

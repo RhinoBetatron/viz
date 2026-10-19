@@ -87,6 +87,7 @@ program
   .option('-c, --cover <image>', 'cover art: blurred background + used by styles like radial')
   .option('--bg <mode>', 'background: gradient, cover, black (default: cover if --cover given)')
   .option('-g, --grayscale', 'black & white, darker and moodier (uses the gloom palette unless -p is set)')
+  .option('--ascii [cell]', 'redraw every frame as greyscale ASCII art; optional character size in px at 1080p (default 10)')
   .option('--grain <n>', 'film grain amount, 0–30 (default: 10 with --grayscale, else 0)', Number)
   .option('-t, --title <text>', 'big title text')
   .option('--subtitle <text>', 'smaller text under the title')
@@ -173,6 +174,9 @@ async function main(input, opts) {
     preset = 'ultrafast';
   }
 
+  const ascii = opts.ascii === undefined ? 0 : opts.ascii === true ? 10 : Number(opts.ascii);
+  if (Number.isNaN(ascii) || ascii < 0) program.error('--ascii takes a character size in px, e.g. --ascii 8');
+
   const inputs = (await stat(input)).isDirectory()
     ? (await readdir(input)).filter((f) => AUDIO_EXT.has(path.extname(f).toLowerCase())).sort().map((f) => path.join(input, f))
     : [input];
@@ -194,9 +198,9 @@ async function main(input, opts) {
     }
     const base = path.join(path.dirname(file), path.basename(file, path.extname(file)));
     const name = [...new Set(scenes.map((sc) => sc.style.name))].join('-');
-    const output = opts.output ?? `${base}_${name}${opts.preview ? '_preview' : ''}.mp4`;
+    const output = opts.output ?? `${base}_${name}${ascii ? '_ascii' : ''}${opts.preview ? '_preview' : ''}.mp4`;
     console.error(`\n▶ ${path.basename(file)} → ${output}`);
-    console.error(`  ${scenes[0].style.name}${opts.grayscale ? ' (grayscale)' : ''} · ${width}x${height} @ ${opts.fps}fps · from ${opts.start}s, ${duration === undefined ? 'to the end' : `${duration}s`}`);
+    console.error(`  ${scenes[0].style.name}${opts.grayscale ? ' (grayscale)' : ''}${ascii ? ` (ascii ${ascii}px)` : ''} · ${width}x${height} @ ${opts.fps}fps · from ${opts.start}s, ${duration === undefined ? 'to the end' : `${duration}s`}`);
     for (const sc of scenes.slice(1)) console.error(`  ${fmtTime(sc.time)} → ${sc.style.name}${sc.palette ? `/${sc.palette}` : ''} (${sc.transition}${sc.transition === 'cut' ? '' : ` ${sc.blend}s`})`);
 
     const t0 = Date.now();
@@ -204,7 +208,7 @@ async function main(input, opts) {
       input: file, output, scenes, width, height, duration, preset,
       fps: opts.fps, start: opts.start, cover: opts.cover, background: opts.bg,
       title: opts.title, subtitle: opts.subtitle, font: opts.font,
-      fade: opts.fade, crf: opts.crf, seed: opts.seed, gpu: opts.gpu, grayscale: opts.grayscale, grain: opts.grain,
+      fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, grayscale: opts.grayscale, grain: opts.grain,
       onStage: (s) => s !== 'Rendering' && console.error(`  ${s}…`),
       onProgress: progressBar,
     });
