@@ -111,6 +111,9 @@ viz TRACK.wav -s marsh -d 20 --open
 # Gallows: hands reaching out of a stormy sea for the noose (b&w)
 viz TRACK.wav -s gallows -g -d 20 --open
 
+# Shadows: shadowy hands reaching in from the sides through the gloom (b&w)
+viz TRACK.wav -s shadows -g -d 20 --open
+
 # Reactor: control rods slamming in as the core flares
 viz TRACK.wav -s reactor -d 20 --open
 
@@ -198,6 +201,7 @@ viz TRACK.wav --auto aurora,kraken,maelstrom --open
 viz TRACK.wav --auto drowned,occult --open
 viz TRACK.wav --auto marsh,vines --open
 viz TRACK.wav --auto gallows,hands -g --open
+viz TRACK.wav --auto shadows,hands -g --open
 viz TRACK.wav --auto reactor,industrial --open
 
 # A 30s teaser around the first drop, styles switching where the music does
@@ -227,14 +231,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `reactor` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -278,7 +282,7 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `spectral` (ghostly teal, night sea) | `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom` | `--auto aurora,kraken,maelstrom` |
 | `blood` | `occult` `drowned` | `--auto drowned,occult` |
 | `verdant` | `vines` `marsh` | `--auto marsh,vines` |
-| `gloom` (greyscale) | `hands` `gallows` | `--auto gallows,hands` |
+| `gloom` (greyscale) | `hands` `gallows` `shadows` | `--auto gallows,hands` or `--auto shadows,hands` |
 | `hazard` | `industrial` `reactor` | `--auto reactor,industrial` |
 
 The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
@@ -580,6 +584,25 @@ The companion to `hands`, using the same 3D hand model in the same greyscale. Gr
 | `moon` | 0.6 | Moon size, 0 = no moon |
 | `stars` | 30 | Stars in the sky |
 
+### `shadows`: hands from the dark
+
+Another `hands` companion, using the same 3D hand model. There's no centre hand: shadowy hands reach in from the left and right only, in staggered rows so the two sides interleave. They come out of deep dark at the edges of the frame towards a dim light in the middle, which breathes with the track and flares on kicks. The hands are sunk into shadow, nearly silhouettes, with a pale rim along the side that faces the light. They sway in and out, reach further when it's loud, and on every kick they lunge and grab, the rim flaring as they do. Gloom wraps around them: mist drifts behind, and dark smoke and pale wisps curl off the arms, with a burst on each grab. Ash drifts down. Uses `gloom` unless you pass `-p` (try `-p blood`). Add `-g` for film grain.
+
+| param | default | |
+|---|---|---|
+| `hands` | 3 | Hands on each side |
+| `reach` | 1 | How far they reach in |
+| `grip` | 1 | How hard they grab on kicks |
+| `speed` | 1 | How fast they sway in and out |
+| `tremble` | 1 | Finger twitching with the highs, 0 = still |
+| `scale` | 1 | Size of the hands |
+| `shadow` | 1 | How dark the hands are, 0 = lit like `hands`, 1 = near silhouettes |
+| `rim` | 1 | Pale rim light on their edges, brighter on kicks, 0 = off |
+| `gloom` | 1 | Smoke and mist around the hands, 0 = clear (try `2` for thick) |
+| `light` | 1 | The dim glow in the middle they reach for, 0 = off |
+| `ash` | 40 | Drifting ash specks, 0 = off |
+| `rotate` | 0 | Roll the hands around their arms, in turns per second (try `0.25`) |
+
 ### `reactor`: reactor core
 
 The companion to `industrial`, in the same hazard amber. A reactor core in a cutaway pressure vessel. On every kick the control rods slam down between the glowing fuel rods, one just after another, as the core flares, and then crawl back out. Coolant races through the pipes faster when it's loud, and steam bursts from them on kicks. A huge radiation trefoil turns behind the vessel inside dashed containment rings. Three dials swing with the bass, mids and highs, overshooting on hits. Warning beacons turn in the corners, and radiation specks crackle with the highs. Hazard stripes and monospace readouts (core temperature, flux, rod position, SCRAM count, STABLE/CRITICAL) frame it, like in `industrial`. Uses `hazard` unless you pass `-p` (try `-p steel` or `-p acid`).
@@ -820,6 +843,11 @@ viz track.wav -s gallows                                   # hands reaching for 
 viz track.wav -s gallows -P hands=10 -P reach=1.4          # a sea of hands
 viz track.wav -s gallows -P mast=0 -P crows=0              # just hands in the waves
 viz track.wav -s gallows -p blood                          # blood-red sea
+viz track.wav -s shadows                                   # hands reaching in from the dark
+viz track.wav -s shadows -P hands=1 -P scale=1.6           # one big pair, face to face
+viz track.wav -s shadows -P gloom=2 -P light=1.5           # thick smoke, brighter light
+viz track.wav -s shadows -P shadow=0.3 -P rim=0            # lit hands, no rim
+viz track.wav -s shadows -p blood -P gloom=2               # red gloom
 
 # Reactor
 viz track.wav -s reactor                                   # amber reactor core
