@@ -68,6 +68,13 @@ export class Sea {
     return this.chop[((i % CHOP_POINTS) + CHOP_POINTS) % CHOP_POINTS];
   }
 
+  // Waveform at screen x (-1…1), smoothly interpolated.
+  waveAt(x) {
+    const cx = clamp(x / this.env.width) * (CHOP_POINTS - 1);
+    const i = Math.min(CHOP_POINTS - 2, Math.floor(cx));
+    return this.chop[i] + (this.chop[i + 1] - this.chop[i]) * (cx - i);
+  }
+
   // Height of layer `l` at screen x.
   y(l, x) {
     const { width, height, params: p } = this.env;
