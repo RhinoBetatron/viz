@@ -2,14 +2,14 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Extras:** palettes, cover art, title text, grayscale mode, ASCII-art mode and film grain.
 
 ## Gallery
 
-All rendered from the same track, square format. The first three rows are each style at default settings. The last row shows a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
+All rendered from the same track, square format. The first three rows and the first GIF of the fourth are each style at default settings. The rest show some variations: the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
@@ -18,8 +18,10 @@ All rendered from the same track, square format. The first three rows are each s
 | `-s particles` | `-s occult -P symbol=cycle` | `-s industrial` |
 | <img src="docs/gifs/vines.gif" width="260" alt="vines"> | <img src="docs/gifs/hands.gif" width="260" alt="hands"> | <img src="docs/gifs/ghostship.gif" width="260" alt="ghostship"> |
 | `-s vines` | `-s hands` | `-s ghostship` |
-| <img src="docs/gifs/scene.gif" width="260" alt="scene"> | <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands rotating"> | <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii"> |
-| `--scene …=occult,transition=flash` | `-s hands -P rotate=0.25` | `-s hands --ascii 16` |
+| <img src="docs/gifs/lighthouse.gif" width="260" alt="lighthouse"> | <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse in a storm"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> |
+| `-s lighthouse` | `-s lighthouse -P rain=2 -P crash=2 -P beams=1` | `--scene …=occult,transition=flash` |
+| <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands rotating"> | <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii hands"> | <img src="docs/gifs/ascii_wave.gif" width="260" alt="ascii wave"> |
+| `-s hands -P rotate=0.25` | `-s hands --ascii 16` | `-s wave --ascii 16` |
 
 ## Contents
 
@@ -208,6 +210,12 @@ viz TRACK.wav -s ghostship -d 20 --open
 # Storm: rough sea, heavy rocking, frequent lightning
 viz TRACK.wav -s ghostship -P rock=2 -P swell=1.6 -P lightning=3 -d 20 --open
 
+# Lighthouse: a sweeping beam over a sea crashing into the rock
+viz TRACK.wav -s lighthouse -d 20 --open
+
+# Lighthouse in a storm: one beam, rain, heavy breakers
+viz TRACK.wav -s lighthouse -P beams=1 -P rain=2 -P crash=2 -P spin=1.5 -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -306,14 +314,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`, `spectral` for `ghostship`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`, `spectral` for `ghostship` and `lighthouse`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -509,6 +517,29 @@ A small translucent galleon drifts on a moonlit sea, and the surface of that sea
 | `stars` | 90 | Stars in the sky |
 | `lightning` | 1 | Chance of lightning on big hits, 0 = off, 2–3 = stormy |
 
+### `lighthouse`: lighthouse on a rock
+
+<img src="docs/gifs/lighthouse.gif" width="260" alt="lighthouse style"> <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse in a storm">
+
+*Left: default. Right: `-P beams=1 -P rain=2 -P crash=2 -P spin=1.5`.*
+
+The companion to `ghostship`, in the same palette and with the same waveform sea. A striped lighthouse stands on a jagged rock, its lamp turning and sweeping two beams across the night. The light breathes with the loudness and flares on every kick. The beams widen with the bass, and as one swings round to face you the lamp blooms into a glare that lights up the whole frame. Each beam lays a broken streak of light on the water below it, and the tower is lit on the side the light points to. Every kick sends a wave crashing into the rock: the water heaps up against it, spray and foam burst up the rock face, and the rock glistens wet for a moment. The windows glow with the mids. Fog, stars and a low moon fill the background, and `rain` adds a storm. Uses the `spectral` palette unless you pass `-p` (or `-g`).
+
+| param | default | |
+|---|---|---|
+| `size` | 1 | Size of the rock and lighthouse |
+| `light` | 1 | Beam brightness |
+| `spin` | 1 | How fast the light turns (it also speeds up when the track gets louder) |
+| `beams` | 2 | Beams on the lamp, 1 or 2 |
+| `crash` | 1 | How hard the waves break on the rock on kicks, 0 = calm |
+| `swell` | 1 | Height of the slow swell, driven by the bass |
+| `chop` | 1 | How much of the raw waveform shows in the sea surface |
+| `waves` | 5 | Sea layers, 2–6 |
+| `fog` | 1 | Fog banks drifting over the water, 0 = off |
+| `moon` | 0.6 | Moon size, 0 = no moon |
+| `stars` | 90 | Stars in the sky |
+| `rain` | 0 | Rain streaks (try `1`–`2`) |
+
 ---
 
 ## ASCII mode: `--ascii`
@@ -562,7 +593,7 @@ viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial
 
 **How it works:**
 - A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash` or `cut`.
-- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom, `ghostship` → spectral).
+- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom, `ghostship`/`lighthouse` → spectral).
 - `-g`, `--grain`, `--cover`, `--title` and fades apply to the whole video.
 - Each scene keeps its own state, so the gears keep their position, and the same style can come back later.
 - The default filename lists the styles: `track_wave-industrial-occult.mp4`.
@@ -685,6 +716,14 @@ viz track.wav -s ghostship -g --grain 14                   # b&w old film
 viz track.wav -s ghostship -P size=0.6 -P waves=6          # tiny ship on a big sea
 viz track.wav -s ghostship --ascii                         # ASCII ship on ASCII waves
 viz track.wav --auto ghostship,occult                      # sailing in the calm parts, sigils on drops
+
+# Lighthouse
+viz track.wav -s lighthouse                                # teal lighthouse, waves crashing on kicks
+viz track.wav -s lighthouse -P rain=2 -P crash=2 -P beams=1   # storm
+viz track.wav -s lighthouse -P crash=0 -P spin=0.5 -P fog=2   # calm, slow, foggy night
+viz track.wav -s lighthouse -p candle -P light=1.4         # warm old-fashioned lamp
+viz track.wav -s lighthouse -g --grain 14                  # b&w old film
+viz track.wav --auto lighthouse,ghostship                  # lighthouse in the calm, ghost ship on drops
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art
