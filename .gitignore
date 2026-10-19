@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+
+# Renders and test audio
+*.mp4
+*.mov
+*.wav
+*.aif
+*.aiff
+*.flac
+*.mp3
+*.m4a
