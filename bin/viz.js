@@ -54,7 +54,11 @@ function parseScene(value, prev = []) {
   return [...prev, scene];
 }
 
-const fmtTime = (t) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+// Rounds first, so 179.97s prints as 3:00.0 rather than 2:60.0.
+const fmtTime = (t) => {
+  const d = Math.round(t * 10);
+  return `${Math.floor(d / 600)}:${((d % 600) / 10).toFixed(1).padStart(4, '0')}`;
+};
 
 function progressBar(done, total, elapsed) {
   const width = 28;
