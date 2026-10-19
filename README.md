@@ -2,14 +2,14 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `reactor`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Extras:** palettes, cover art, title text, grayscale mode, ASCII-art mode and film grain.
 
 ## Gallery
 
-All rendered from the same track, square format. The first three rows and the first GIF of the fourth are each style at default settings. The rest show some variations: the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
+All rendered from the same track, square format. The first six rows are each style at default settings. The last two show some variations: the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
@@ -18,10 +18,16 @@ All rendered from the same track, square format. The first three rows and the fi
 | `-s particles` | `-s occult -P symbol=cycle` | `-s industrial` |
 | <img src="docs/gifs/vines.gif" width="260" alt="vines"> | <img src="docs/gifs/hands.gif" width="260" alt="hands"> | <img src="docs/gifs/ghostship.gif" width="260" alt="ghostship"> |
 | `-s vines` | `-s hands` | `-s ghostship` |
-| <img src="docs/gifs/lighthouse.gif" width="260" alt="lighthouse"> | <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse in a storm"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> |
-| `-s lighthouse` | `-s lighthouse -P rain=2 -P crash=2 -P beams=1` | `--scene …=occult,transition=flash` |
-| <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands rotating"> | <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii hands"> | <img src="docs/gifs/ascii_wave.gif" width="260" alt="ascii wave"> |
-| `-s hands -P rotate=0.25` | `-s hands --ascii 16` | `-s wave --ascii 16` |
+| <img src="docs/gifs/lighthouse.gif" width="260" alt="lighthouse"> | <img src="docs/gifs/kraken.gif" width="260" alt="kraken"> | <img src="docs/gifs/abyss.gif" width="260" alt="abyss"> |
+| `-s lighthouse` | `-s kraken` | `-s abyss` |
+| <img src="docs/gifs/aurora.gif" width="260" alt="aurora"> | <img src="docs/gifs/maelstrom.gif" width="260" alt="maelstrom"> | <img src="docs/gifs/drowned.gif" width="260" alt="drowned"> |
+| `-s aurora` | `-s maelstrom` | `-s drowned` |
+| <img src="docs/gifs/marsh.gif" width="260" alt="marsh"> | <img src="docs/gifs/gallows.gif" width="260" alt="gallows"> | <img src="docs/gifs/reactor.gif" width="260" alt="reactor"> |
+| `-s marsh` | `-s gallows` | `-s reactor` |
+| <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse_storm"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> | <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands_rotate"> |
+| `-s lighthouse -P rain=2 -P crash=2 -P beams=1` | `--scene …=occult,transition=flash` | `-s hands -P rotate=0.25` |
+| <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii_hands"> | <img src="docs/gifs/ascii_vines.gif" width="260" alt="ascii_vines"> | <img src="docs/gifs/ascii_wave.gif" width="260" alt="ascii_wave"> |
+| `-s hands --ascii 16` | `-s vines --ascii 16` | `-s wave --ascii 16` |
 
 ## Contents
 
@@ -216,6 +222,30 @@ viz TRACK.wav -s lighthouse -d 20 --open
 # Lighthouse in a storm: one beam, rain, heavy breakers
 viz TRACK.wav -s lighthouse -P beams=1 -P rain=2 -P crash=2 -P spin=1.5 -d 20 --open
 
+# Kraken: tentacles rising from the waveform sea, an eye on the drops
+viz TRACK.wav -s kraken -d 20 --open
+
+# Abyss: jellyfish pulsing under the surface, a wreck below
+viz TRACK.wav -s abyss -d 20 --open
+
+# Aurora: northern lights over a fjord, mirrored in the water
+viz TRACK.wav -s aurora -d 20 --open
+
+# Maelstrom: a whirlpool dragging wreckage and a ghost ship down
+viz TRACK.wav -s maelstrom -d 20 --open
+
+# Drowned: a sigil burning in a sunken chapel, candles underwater
+viz TRACK.wav -s drowned -P symbol=cycle -d 20 --open
+
+# Marsh: will-o'-wisps over black swamp water
+viz TRACK.wav -s marsh -d 20 --open
+
+# Gallows: hands reaching out of a stormy sea for the noose (b&w)
+viz TRACK.wav -s gallows -g -d 20 --open
+
+# Reactor: control rods slamming in as the core flares
+viz TRACK.wav -s reactor -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -268,6 +298,12 @@ viz TRACK.wav -d 30 -s hands -g \
 viz TRACK.wav -d 25 -s vines \
   --scene +12=industrial/verdant,transition=flash --open
 
+# The sea story (60s): aurora → ghost ship → kraken on the drop → under the sea
+viz TRACK.wav -d 60 -s aurora \
+  --scene +10=ghostship \
+  --scene +25=kraken,transition=flash \
+  --scene +45=abyss,transition=black --open
+
 # Beat-cut montage: hard cuts between styles every 4 seconds
 viz TRACK.wav -d 20 --transition cut -s bars \
   --scene +4=occult --scene +8=industrial --scene +12=particles --scene +16=wave --open
@@ -286,6 +322,15 @@ viz TRACK.wav --auto --open
 viz TRACK.wav --auto wave/steel,industrial --open
 viz TRACK.wav --auto vines,occult,particles/ember --open
 viz TRACK.wav -g --auto particles,industrial --open
+
+# Night sea, whole track: aurora in the calm, kraken on drops, maelstrom on builds
+viz TRACK.wav --auto aurora,kraken,maelstrom --open
+
+# Each palette family, calm → heavy
+viz TRACK.wav --auto drowned,occult --open
+viz TRACK.wav --auto marsh,vines --open
+viz TRACK.wav --auto gallows,hands -g --open
+viz TRACK.wav --auto reactor,industrial --open
 
 # A 30s teaser around the first drop, styles switching where the music does
 viz TRACK.wav --auto --start 1:00 -d 30 --open
@@ -314,14 +359,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `reactor` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, `blood` for `occult`, `hazard` for `industrial`, `verdant` for `vines`, `gloom` for `hands`, `spectral` for `ghostship` and `lighthouse`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -355,6 +400,20 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 ## Styles and their `--param` settings
 
 Pass any of these with `-P key=value`. You can repeat it: `-P bars=64 -P glow=2`.
+
+### Style families
+
+Styles that share a palette are made to go together. Each family has a calm style and a heavy one, so they suit `--auto calm,drop` and scene changes.
+
+| Palette | Styles | Try |
+|---|---|---|
+| `spectral` (ghostly teal, night sea) | `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom` | `--auto aurora,kraken,maelstrom` |
+| `blood` | `occult` `drowned` | `--auto drowned,occult` |
+| `verdant` | `vines` `marsh` | `--auto marsh,vines` |
+| `gloom` (greyscale) | `hands` `gallows` | `--auto gallows,hands` |
+| `hazard` | `industrial` `reactor` | `--auto reactor,industrial` |
+
+The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
 
 ### `bars`: mirrored spectrum bars
 
@@ -540,6 +599,178 @@ The companion to `ghostship`, in the same palette and with the same waveform sea
 | `stars` | 90 | Stars in the sky |
 | `rain` | 0 | Rain streaks (try `1`–`2`) |
 
+### `kraken`: tentacles from the deep
+
+<img src="docs/gifs/kraken.gif" width="260" alt="kraken style">
+
+Tentacles rise out of the same waveform sea as `ghostship`. They curl at the tips and squirm slowly, with glowing suckers that pulse with the beat. The louder the track, the higher they rise; in quiet parts only the tips show. On every kick a couple of them whip over and throw water off. On loud stretches a great slit-pupilled eye surfaces in the middle and glances about, its pupil widening with the bass. Lightning, fog, moonlight and optional rain fill in the night. Loudness is measured within the clip, so on a whole track the eye comes up on the drops, and on a short clip in its loudest moments. Uses `spectral` unless you pass `-p`.
+
+| param | default | |
+|---|---|---|
+| `tentacles` | 7 | How many tentacles, 0–12 |
+| `size` | 1 | Size of the tentacles and eye |
+| `rise` | 1 | How far they rise as the track gets louder |
+| `curl` | 1 | How tightly the tips coil |
+| `lash` | 1 | How hard they whip on kicks, 0 = no lashing |
+| `writhe` | 1 | Slow squirming |
+| `suckers` | 1 | Glowing suckers, 0 = off |
+| `eye` | 1 | The eye that surfaces on loud parts, 0 = never, 2 = always up |
+| `swell` | 1 | Height of the slow swell, driven by the bass |
+| `chop` | 1 | How much of the raw waveform shows in the sea surface |
+| `waves` | 5 | Sea layers, 2–6 |
+| `spray` | 1 | Water thrown off lashing tentacles, 0 = off |
+| `fog` | 1 | Fog banks, 0 = off |
+| `moon` | 0.8 | Moon size, 0 = no moon |
+| `stars` | 90 | Stars in the sky |
+| `lightning` | 1.5 | Chance of lightning on big hits, 0 = off |
+| `rain` | 0 | Rain streaks (try `1`–`2`) |
+
+### `abyss`: under the sea
+
+<img src="docs/gifs/abyss.gif" width="260" alt="abyss style">
+
+Below the surface of the sea. The surface is a bright rippling line overhead carrying the waveform, with light shafts slanting down from it that shimmer with the highs. Glowing jellyfish drift in the dark. Each one listens to its own slice of the spectrum and glows with it, and on kicks half of them squeeze and jet upward, taking turns. Their tentacles trail and stream behind as they swim. A wreck lies on the sea floor with its portholes still glowing faintly, kelp sways with the mids, bubbles rise on transients and specks of marine snow drift down. On loud stretches, a huge shape glides slowly past in the far dark. Uses `spectral` unless you pass `-p`.
+
+| param | default | |
+|---|---|---|
+| `jellies` | 7 | Jellyfish, 0–14 |
+| `size` | 1 | Jellyfish size |
+| `swim` | 1 | How hard they pulse and swim on kicks |
+| `tentacles` | 1 | Tentacle length, 0 = none |
+| `shafts` | 6 | Light shafts from the surface, 0 = off |
+| `bubbles` | 1 | Bubble bursts on transients, 0 = off |
+| `snow` | 70 | Drifting specks, 0 = off |
+| `kelp` | 12 | Kelp strands on the floor, 0 = off |
+| `wreck` | 1 | Sunken ship on the floor, 0 = off |
+| `whale` | 1 | A huge shape passing in the dark on loud parts, 0 = never |
+| `surface` | 1 | Waveform on the surface above, 0 = flat |
+
+### `aurora`: northern lights over a fjord
+
+<img src="docs/gifs/aurora.gif" width="260" alt="aurora style">
+
+Aurora curtains ripple across the sky above a mountain fjord. Each fold of a curtain rises with its own slice of the spectrum, so the bass and the highs light up different parts. Brightness ripples run along the curtains, and on every kick a flare races out from the middle. The curtains break into bright stretches with dark gaps, bunch into folds and drift slowly. They're mirrored in the calm water below, the reflection broken up by ripples that grow with the bass. Shooting stars streak past on big hits. It's the quietest of the sea styles, made for intros and outros. Uses `spectral` unless you pass `-p` (try `-p vapor` or `-p acid`).
+
+| param | default | |
+|---|---|---|
+| `curtains` | 3 | Aurora bands, 1–5 |
+| `height` | 1 | How tall the curtains reach |
+| `shimmer` | 1 | Running ripples of brightness along the curtains |
+| `speed` | 1 | How fast the curtains drift and fold |
+| `flare` | 1 | Brightness wave racing out from the middle on kicks |
+| `mountains` | 1 | Mountain ridges on the horizon, 0 = open sea |
+| `reflection` | 1 | Aurora mirrored in the water, 0 = off |
+| `shooting` | 1 | Shooting stars on big hits, 0 = off |
+| `stars` | 160 | Stars in the sky |
+| `swell` | 0.35 | The sea is calm here |
+| `chop` | 0.6 | How much of the waveform shows in the water |
+| `waves` | 3 | Sea layers, 2–6 |
+
+### `maelstrom`: whirlpool from above
+
+<img src="docs/gifs/maelstrom.gif" width="260" alt="maelstrom style">
+
+A whirlpool seen from straight above. Spiral currents carrying the waveform pour inward and turn faster as the track gets louder, and dashed foam rings circle at their own speeds. Planks, barrels and lanterns get dragged round and down the drain, and a little ghost ship circles it, slowly spiralling in. The eye in the middle has a glowing ragged rim. It widens with the bass and tears open on every kick, flinging spray outward. Uses `spectral` unless you pass `-p`.
+
+| param | default | |
+|---|---|---|
+| `arms` | 9 | Spiral currents |
+| `twist` | 1 | How tightly the arms wind |
+| `speed` | 1 | How fast it turns (it also speeds up with loudness) |
+| `rings` | 9 | Dashed foam rings, 0 = off |
+| `eye` | 1 | Size of the hole in the middle |
+| `tear` | 1 | How much the eye gapes on kicks |
+| `wave` | 1 | How much the waveform ripples the currents |
+| `debris` | 40 | Planks, barrels and lanterns being pulled in, 0 = none |
+| `ship` | 1 | A little ghost ship circling the drain, 0 = none |
+| `spray` | 1 | Spray flung off the rim on kicks, 0 = off |
+
+### `drowned`: sunken chapel
+
+<img src="docs/gifs/drowned.gif" width="260" alt="drowned style">
+
+The companion to `occult`, in the same blood-red palette. A ruined chapel lies under a red sea, with pillars (one broken off), a tiled floor and an altar. A sigil burns in the rose window, using the same symbols as `occult`, `symbol=cycle` included. It pulses on kicks while red light pours through the window. Candles burn on the altar and the floor underwater, their flames leaning and flickering with the highs and swelling on kicks. Runes around the window light up one by one with the spectrum, chains sway with the mids, and bubbles rise from the flames. The surface above carries the waveform, with light shafts slanting down. Uses `blood` unless you pass `-p`.
+
+| param | default | |
+|---|---|---|
+| `symbol` | pentagram | `pentagram` `inverted` `hexagram` `heptagram` `octagram` `eye` `leviathan` `triplemoon` `cycle` |
+| `cycle` | 8 | With `symbol=cycle`: kicks between symbol changes |
+| `candles` | 7 | Candles on and around the altar, 0 = none |
+| `flame` | 1 | Flame size |
+| `runes` | 1 | Runes around the window lighting up with the spectrum, 0 = off |
+| `shafts` | 5 | Red light shafts from the surface, 0 = off |
+| `chains` | 2 | Hanging chains swaying with the mids, 0 = none |
+| `bubbles` | 1 | Bubbles rising from the flames on transients, 0 = off |
+| `snow` | 60 | Drifting specks, 0 = off |
+| `glow` | 1 | Sigil and window glow |
+| `surface` | 1 | Waveform on the surface above, 0 = flat |
+
+### `marsh`: swamp of will-o'-wisps
+
+<img src="docs/gifs/marsh.gif" width="260" alt="marsh style">
+
+The companion to `vines`, in the same green palette. A swamp at night: dead trees with hanging moss stand in black water, with a treeline on the far bank. Will-o'-wisps drift and bob over the water, each trailing light and mirrored in the water below. They flare on every kick, and on transients one now and then blinks out and reappears somewhere else, as wisps do. Reeds and cattails sway with the mids in front, fireflies blink on with the highs, ripples spread on the water on kicks, and green fog rolls past under a low moon. The trees and moss grow differently for every `--seed`. Uses `verdant` unless you pass `-p`.
+
+| param | default | |
+|---|---|---|
+| `wisps` | 7 | Will-o'-wisps, 0–14 |
+| `blink` | 1 | How often wisps vanish and reappear elsewhere on transients, 0 = never |
+| `trees` | 3 | Dead trees standing in the water, 0–5 |
+| `moss` | 1 | Hanging moss, 0 = none |
+| `reeds` | 1 | Reeds and cattails in front, 0 = none |
+| `fireflies` | 40 | 0 = off |
+| `ripples` | 1 | Rings on the water on kicks, 0 = off |
+| `fog` | 1 | Fog banks, 0 = off |
+| `moon` | 1 | Moon size, 0 = no moon |
+| `stars` | 60 | Stars in the sky |
+| `swell` | 0.3 | Still water |
+| `chop` | 0.5 | How much of the waveform shows in the water |
+| `waves` | 3 | Water layers, 2–6 |
+
+### `gallows`: hands from the sea
+
+<img src="docs/gifs/gallows.gif" width="260" alt="gallows style">
+
+The companion to `hands`, using the same 3D hand model in the same greyscale. Grey hands reach up out of a stormy sea towards a sinking mast. A noose hangs from its yard and swings on the kicks, and torn sail rags flap from it. The hands rise higher as the track gets louder, each swaying at its own pace. On every kick they lunge up and clutch, turned towards the noose. Crows circle the masthead, scattering wider on the beat. Rain falls, lightning strikes on big hits, and the mast rocks with the swell. Uses `gloom` unless you pass `-p`. Add `-g` for film grain.
+
+| param | default | |
+|---|---|---|
+| `hands` | 6 | Hands reaching out of the water, 0–10 |
+| `reach` | 1 | How far they rise out of the water |
+| `grip` | 1 | How hard they clutch on kicks |
+| `tremble` | 1 | Finger twitching with the highs, 0 = still |
+| `scale` | 1 | Size of the hands |
+| `mast` | 1 | The sinking mast and noose, 0 = none |
+| `crows` | 6 | Crows circling the mast, 0 = none |
+| `swell` | 1.2 | Height of the swell |
+| `chop` | 1 | How much of the waveform shows in the sea |
+| `waves` | 5 | Sea layers, 2–6 |
+| `rain` | 1 | Rain streaks, 0 = dry |
+| `lightning` | 1 | Chance of lightning on big hits, 0 = off |
+| `fog` | 1 | Fog banks, 0 = off |
+| `moon` | 0.6 | Moon size, 0 = no moon |
+| `stars` | 30 | Stars in the sky |
+
+### `reactor`: reactor core
+
+<img src="docs/gifs/reactor.gif" width="260" alt="reactor style">
+
+The companion to `industrial`, in the same hazard amber. A reactor core in a cutaway pressure vessel. On every kick the control rods slam down between the glowing fuel rods, one just after another, as the core flares, and then crawl back out. Coolant races through the pipes faster when it's loud, and steam bursts from them on kicks. A huge radiation trefoil turns behind the vessel inside dashed containment rings. Three dials swing with the bass, mids and highs, overshooting on hits. Warning beacons turn in the corners, and radiation specks crackle with the highs. Hazard stripes and monospace readouts (core temperature, flux, rod position, SCRAM count, STABLE/CRITICAL) frame it, like in `industrial`. Uses `hazard` unless you pass `-p` (try `-p steel` or `-p acid`).
+
+| param | default | |
+|---|---|---|
+| `scale` | 1 | Size of the reactor |
+| `rods` | 7 | Control rods, 2–12 |
+| `slam` | 1 | How far the rods drop on kicks, 0 = still |
+| `flare` | 1 | How hard the core flares on kicks |
+| `trefoil` | 1 | Rotating radiation symbol behind the core, 0 = off |
+| `pipes` | 1 | Coolant pipes with flowing coolant and steam, 0 = off |
+| `gauges` | 1 | Dials for bass / mids / highs, 0 = off |
+| `beacons` | 1 | Turning warning lights, 0 = off |
+| `geiger` | 1 | Radiation specks crackling with the highs, 0 = off |
+| `stripes` | 1 | Hazard stripe bands top and bottom |
+| `hud` | 1 | Monospace readouts |
+
 ---
 
 ## ASCII mode: `--ascii`
@@ -593,7 +824,7 @@ viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial
 
 **How it works:**
 - A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash` or `cut`.
-- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (`occult` → blood, `industrial` → hazard, `vines` → verdant, `hands` → gloom, `ghostship`/`lighthouse` → spectral).
+- `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (see [Style families](#style-families)).
 - `-g`, `--grain`, `--cover`, `--title` and fades apply to the whole video.
 - Each scene keeps its own state, so the gears keep their position, and the same style can come back later.
 - The default filename lists the styles: `track_wave-industrial-occult.mp4`.
@@ -725,6 +956,54 @@ viz track.wav -s lighthouse -p candle -P light=1.4         # warm old-fashioned 
 viz track.wav -s lighthouse -g --grain 14                  # b&w old film
 viz track.wav --auto lighthouse,ghostship                  # lighthouse in the calm, ghost ship on drops
 
+# Kraken
+viz track.wav -s kraken                                    # tentacles and the eye on loud parts
+viz track.wav -s kraken -P eye=2 -P tentacles=10           # the eye always up, more tentacles
+viz track.wav -s kraken -P rain=2 -P lightning=3 -P lash=2 # storm, violent lashing
+viz track.wav -s kraken -p blood                           # red sea
+
+# Abyss
+viz track.wav -s abyss                                     # jellyfish, wreck, light shafts
+viz track.wav -s abyss -P jellies=14 -P size=0.7           # a swarm of small jellies
+viz track.wav -s abyss -P whale=0 -P wreck=0 -P kelp=0     # just jellies in the open sea
+viz track.wav -s abyss -p vapor                            # neon pink and blue jellies
+
+# Aurora
+viz track.wav -s aurora                                    # teal northern lights over a fjord
+viz track.wav -s aurora -p vapor                           # pink and violet aurora
+viz track.wav -s aurora -P curtains=5 -P height=1.4        # sky full of curtains
+viz track.wav -s aurora -P mountains=0                     # open sea horizon
+
+# Maelstrom
+viz track.wav -s maelstrom                                 # whirlpool with wreckage and a ghost ship
+viz track.wav -s maelstrom -P twist=2 -P arms=14           # tighter, busier spiral
+viz track.wav -s maelstrom -P tear=2 -P eye=1.5            # gaping maw on every kick
+viz track.wav -s maelstrom -p ember                        # fiery vortex
+
+# Drowned
+viz track.wav -s drowned                                   # blood-red sunken chapel
+viz track.wav -s drowned -P symbol=cycle -P cycle=4        # sigil changing every 4 kicks
+viz track.wav -s drowned -p spectral                       # cold teal chapel
+viz track.wav -s drowned -g --grain 14                     # b&w
+
+# Marsh
+viz track.wav -s marsh                                     # will-o'-wisps over the swamp
+viz track.wav -s marsh -P wisps=14 -P blink=2              # restless wisps everywhere
+viz track.wav -s marsh -P trees=5 -P fog=2                 # thick, foggy dead forest
+viz track.wav -s marsh --seed 7                            # different trees
+
+# Gallows
+viz track.wav -s gallows                                   # hands reaching for the noose
+viz track.wav -s gallows -P hands=10 -P reach=1.4          # a sea of hands
+viz track.wav -s gallows -P mast=0 -P crows=0              # just hands in the waves
+viz track.wav -s gallows -p blood                          # blood-red sea
+
+# Reactor
+viz track.wav -s reactor                                   # amber reactor core
+viz track.wav -s reactor -p steel                          # cold blue reactor
+viz track.wav -s reactor -p acid                           # green, radioactive
+viz track.wav -s reactor -P slam=2 -P flare=1.5            # violent scrams
+
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art
 viz track.wav -s wave --ascii 6                            # fine, dense characters
@@ -809,7 +1088,7 @@ export default {
 
 **`env`**: `width`, `height`, `cx`/`cy` (visual centre, already safe for Reels), `u` (1 unit = 1px at 1080p, so multiply sizes by it), `palette` (`bg`, `colors`, `accent`, `text`), `params`, `cover` (image or null), `random()` (seeded), `fps`, `duration`, `createCanvas(w, h)`.
 
-Vector symbols (runes, alchemical sigils, star polygons, `addGlyph`) are in `src/glyphs.js`. Helpers in `src/util.js`: `sampleSpectrum`, `sampleWaveform`, `drawCover`, `rng`, `lerp`, `clamp`, `flatten`. Colour helpers in `src/palettes.js`: `rgba(hex, alpha)`, `mix(a, b, t)`, `rampAt(colors, t)`.
+Vector symbols (runes, alchemical sigils, star polygons, `addGlyph`) are in `src/glyphs.js`. Helpers in `src/util.js`: `sampleSpectrum`, `sampleWaveform`, `drawCover`, `rng`, `lerp`, `clamp`, `flatten`. Colour helpers in `src/palettes.js`: `rgba(hex, alpha)`, `mix(a, b, t)`, `rampAt(colors, t)`. For a style set at sea, `src/sea.js` has the waveform sea (`new Sea(env, {size, waterY})`, then `update`, `drawBehind` / `drawFront`) plus stars, moon, fog, rain and lightning; `src/underwater.js` has the underwater pieces.
 
 > **Performance gotchas:** If you draw on an offscreen canvas across frames (trails, feedback), call `flatten(canvas)` each frame, or rendering gets slower every frame. Also reset `ctx.shadowBlur = 0` before big fills, because a shadow on a full-screen rect is very expensive.
 
@@ -827,6 +1106,8 @@ src/render.js       frame loop: background → style → text → fades → ffmp
 src/palettes.js     colour palettes + auto palette from cover art
 src/util.js         helpers for styles
 src/glyphs.js       runes, occult/alchemical symbols as vector paths
+src/sea.js          shared night sea (waveform waves, stars, moon, fog, rain, lightning)
+src/underwater.js   shared underwater bits (surface from below, light shafts, bubbles, snow)
 src/styles/*.js     one file per style
 ```
 
