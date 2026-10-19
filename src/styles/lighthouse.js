@@ -1,24 +1,9 @@
 import { Path2D } from 'skia-canvas';
 import { hexToRgb, mix, rgba } from '../palettes.js';
-import { clamp, sampleWaveform } from '../util.js';
+import { clamp } from '../util.js';
+import { Sea, glowSprite, makeStars, drawStars, makeFog, drawFog, drawMoon, drawMoonlight, makeRain, drawRain } from '../sea.js';
 
 const TAU = Math.PI * 2;
-const CHOP_POINTS = 48;   // waveform samples across the sea surface
-const SEA_POINTS = 110;   // points per wave line
-
-// Soft glow dot, stamped with drawImage (cheaper than shadowBlur).
-function glowSprite(env, color, size) {
-  const s = Math.round(size);
-  const c = env.createCanvas(s * 2, s * 2);
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(s, s, 0, s, s, s);
-  grad.addColorStop(0, rgba(color, 1));
-  grad.addColorStop(0.2, rgba(color, 0.4));
-  grad.addColorStop(1, rgba(color, 0));
-  g.fillStyle = grad;
-  g.fillRect(0, 0, s * 2, s * 2);
-  return c;
-}
 
 // The light beam, drawn once and stretched each frame: a wedge that widens
 // and fades away from the lamp, with soft edges.
@@ -67,23 +52,30 @@ export default {
   setup(ctx, env) {
     const { width, height, u, random, palette, params: p } = env;
     this.t = 0;
-    this.phase = 0;
     this.angle = 0.6; // beam direction around the tower, 0 = pointing right
-    this.chop = new Float32Array(CHOP_POINTS);
-    this.peak = 0.05;
     this.S = Math.min(width * 0.5, height * 0.34) * p.size;
+    this.rockX = env.cx;
+    this.rockW = this.S * 0.55;
+    this.rockH = this.S * 0.4;
+    this.waterY = env.cy + this.S * 0.62;
+    this.sea = new Sea(env, {
+      size: this.S, waterY: this.waterY, seeThrough: 0.06, chopMain: 0.08,
+      // Water heaping up against the rock after a crash.
+      bump: (l, x) => {
+        const k = this.sea.anchor;
+        if (l < k) return 0;
+        const near = Math.exp(-(((x - this.rockX) / (this.rockW * (1.1 + 0.4 * (l - k)))) ** 2));
+        return -this.surge * near * this.S * 0.16 / (1 + (l - k) * 0.6);
+      },
+    });
     this.surge = 0;
     this.surgeV = 0;
     this.wet = 0;
     this.spray = [];
     this.puffs = [];
-    this.stars = Array.from({ length: Math.round(p.stars) }, () => ({
-      x: random(), y: random(), r: (0.6 + random() * 1.4) * u, phase: random() * TAU,
-    }));
-    this.fogBanks = Array.from({ length: 6 }, (_, i) => ({
-      x: random() * 1.4 - 0.2, y: random(), speed: (0.008 + random() * 0.012) * (i % 2 ? 1 : -1), w: 1.6 + random() * 1.4,
-    }));
-    this.rain = Array.from({ length: Math.round(160 * p.rain) }, () => ({ x: random(), y: random(), v: 0.8 + random() * 0.6 }));
+    this.stars = makeStars(random, p.stars, u);
+    this.fogBanks = makeFog(random);
+    this.rain = makeRain(random, p.rain);
 
     // Rock outline in rock units (half-width 1, height 1, origin at the
     // waterline centre), jagged but with a flat top for the tower.
@@ -113,64 +105,6 @@ export default {
     this.mist = glowSprite(env, palette.colors[1], 128 * u);
     this.foam = glowSprite(env, palette.colors[2], 64 * u);
     this.beam = beamSprite(env, palette);
-  },
-
-  // Height of sea layer `l` (0 = farthest) at screen x.
-  seaY(l, x, env) {
-    const { width, height, params: p } = env;
-    const n = this.layers, d = n > 1 ? l / (n - 1) : 1, k = this.rockLayer;
-    // Far layers bunch up towards the horizon, near ones spread to the bottom.
-    const base = l <= k
-      ? this.waterY - (k - l) * this.S * 0.07
-      : this.waterY + ((l - k) / Math.max(1, n - 1 - k)) ** 1.3 * Math.min(height * 0.92 - this.waterY, this.S * 0.85);
-    const amp = this.S * 0.07 * (0.4 + 1.1 * d) * p.swell * (0.45 + 1.1 * this.bass);
-    const ph = this.phase * (0.7 + 0.5 * d) + l * 1.9;
-    const swell = Math.sin((x / width) * TAU * 1.1 + ph) * 0.6
-      + Math.sin((x / width) * TAU * 2.3 - ph * 1.3 + l) * 0.3
-      + Math.sin((x / width) * TAU * 4.7 + ph * 1.7 + l * 3) * 0.1;
-    // The waveform itself, shifted per layer so the layers don't match.
-    const cx = ((x / width) * (CHOP_POINTS - 1) + l * 11) % (CHOP_POINTS - 1);
-    const i = Math.floor(cx);
-    const wave = this.chop[i] + (this.chop[i + 1] - this.chop[i]) * (cx - i);
-    const chopAmp = this.S * (l === k ? 0.08 : 0.04 + 0.06 * d) * p.chop;
-    // Water heaping up against the rock after a crash.
-    const near = l >= k ? Math.exp(-(((x - this.rockX) / (this.rockW * (1.1 + 0.4 * (l - k)))) ** 2)) : 0;
-    return base + swell * amp + wave * chopAmp - this.surge * near * this.S * 0.16 / (1 + (l - k) * 0.6);
-  },
-
-  drawLayer(ctx, l, env) {
-    const { width, height, u, palette } = env;
-    const n = this.layers, d = n > 1 ? l / (n - 1) : 1;
-    const line = new Path2D();
-    for (let i = 0; i <= SEA_POINTS; i++) {
-      const x = (i / SEA_POINTS) * (width + 40 * u) - 20 * u;
-      const y = this.seaY(l, x, env);
-      i ? line.lineTo(x, y) : line.moveTo(x, y);
-    }
-    const body = new Path2D(line);
-    body.lineTo(width + 20 * u, height);
-    body.lineTo(-20 * u, height);
-    body.closePath();
-
-    const top = this.seaY(l, 0, env) - this.S * 0.15;
-    const grad = ctx.createLinearGradient(0, top, 0, height);
-    grad.addColorStop(0, rgba(mix(palette.bg[1], palette.colors[0], 0.75 - 0.4 * d), 0.97 - 0.06 * d));
-    grad.addColorStop(1, rgba(palette.bg[0], 0.98));
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = grad;
-    ctx.fill(body);
-
-    // Glowing crest: a wide faint halo under a thin bright line.
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineJoin = 'round';
-    const crest = l === this.rockLayer ? palette.colors[2] : palette.colors[1];
-    const lift = 0.5 + 0.5 * this.pulse;
-    ctx.strokeStyle = rgba(crest, (0.05 + 0.08 * d) * lift);
-    ctx.lineWidth = (10 + 8 * d) * u;
-    ctx.stroke(line);
-    ctx.strokeStyle = rgba(crest, (0.3 + 0.55 * d) * (0.6 + 0.4 * lift));
-    ctx.lineWidth = (1.2 + 1.6 * d) * u;
-    ctx.stroke(line);
   },
 
   // Halo, then core: the glowing linework shared with ghostship.
@@ -307,7 +241,7 @@ export default {
     for (let i = 0; i < rows; i++) {
       const f = (i + 0.5) / rows;
       const x = lx + dir * len * (0.25 + 0.6 * f);
-      const y = this.seaY(this.rockLayer + 1 < this.layers ? this.rockLayer + 1 : this.rockLayer, x, env) + this.S * 0.03 * Math.sin(i * 2.1 + this.t * 3);
+      const y = this.sea.y(Math.min(this.sea.anchor + 1, this.sea.layers - 1), x) + this.S * 0.03 * Math.sin(i * 2.1 + this.t * 3);
       const w = this.S * (0.08 + 0.2 * f) * (0.6 + 0.4 * Math.sin(this.t * 4 + i * 1.7));
       ctx.fillStyle = rgba(palette.text, a0 * 0.18 * (1 - f * 0.6));
       ctx.fillRect(x - w / 2, y, w, this.S * 0.006);
@@ -323,25 +257,11 @@ export default {
     this.pulse = frame.pulse;
     this.bass = frame.bass;
     this.mid = frame.mid;
-    this.layers = Math.max(2, Math.min(6, Math.round(p.waves)));
-    this.rockLayer = Math.max(0, Math.min(this.layers - 1, Math.round((this.layers - 1) * 0.4)));
-    this.rockX = cx;
-    this.rockW = S * 0.55;
-    this.rockH = S * 0.4;
-    this.waterY = cy + S * 0.62;
-    this.phase += dt * (0.9 + 1.6 * frame.rms);
     this.angle += dt * TAU * 0.16 * p.spin * (0.7 + 1.2 * frame.rms);
     this.intensity = p.light * (0.4 + 0.45 * frame.rms + 0.55 * frame.pulse);
 
-    // Sea surface from the waveform, normalised to its recent peak and eased.
-    const raw = sampleWaveform(frame.waveform, CHOP_POINTS);
-    let peak = 0;
-    for (const v of raw) peak = Math.max(peak, Math.abs(v));
-    this.peak = Math.max(this.peak * 0.995, peak, 0.02);
-    for (let i = 0; i < CHOP_POINTS; i++) {
-      const edge = Math.min(1, i / 4, (CHOP_POINTS - 1 - i) / 4);
-      this.chop[i] += ((raw[i] / this.peak) * edge - this.chop[i]) * 0.45;
-    }
+    const sea = this.sea;
+    sea.update(frame, dt);
 
     // A wave breaks on the rock: the water heaps up, spray and foam shoot up
     // the face, and the rock stays wet for a moment.
@@ -366,50 +286,17 @@ export default {
     this.wet *= 0.9 ** (30 / fps);
 
     // Sky: stars and moon.
-    const horizon = this.seaY(0, cx, env);
-    for (const s of this.stars) {
-      const tw = 0.35 + 0.35 * Math.sin(t * 2.2 + s.phase) + 0.4 * frame.high;
-      ctx.fillStyle = rgba(palette.text, clamp(tw) * 0.8);
-      ctx.fillRect(s.x * width, s.y * horizon * 0.95, s.r, s.r);
-    }
+    const horizon = sea.y(0, cx);
+    drawStars(ctx, this.stars, env, horizon, t, frame.high);
     const moonR = S * 0.09 * p.moon;
     const moonX = cx - Math.min(width * 0.32, S * 0.75);
     const moonY = Math.max(moonR * 2.5, horizon - S * 1.25);
-    if (moonR > 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.25 + 0.2 * frame.bass;
-      const g = moonR * 7;
-      ctx.drawImage(this.mist, moonX - g, moonY - g, g * 2, g * 2);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = 'source-over';
-      const mg = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, 0, moonX, moonY, moonR);
-      mg.addColorStop(0, mix(palette.text, '#ffffff', 0.5));
-      mg.addColorStop(1, mix(palette.text, palette.colors[1], 0.35));
-      ctx.fillStyle = mg;
-      ctx.beginPath();
-      ctx.arc(moonX, moonY, moonR, 0, TAU);
-      ctx.fill();
-    }
-
-    const drawFog = (front) => {
-      if (p.fog <= 0) return;
-      ctx.globalCompositeOperation = 'lighter';
-      for (const [i, f] of this.fogBanks.entries()) {
-        if ((i % 3 === 0) !== front) continue;
-        f.x += f.speed * dt * (1 + frame.rms);
-        if (f.x > 1.6) f.x = -0.6;
-        if (f.x < -0.6) f.x = 1.6;
-        const w = S * f.w, h = S * (front ? 0.22 : 0.3);
-        const y = front ? height - (height - this.waterY) * (0.25 + f.y * 0.3) : horizon - S * 0.05 + f.y * S * 0.18;
-        ctx.globalAlpha = clamp((front ? 0.12 : 0.18) * p.fog * (0.6 + 0.6 * frame.rms));
-        ctx.drawImage(this.mist, f.x * width - w / 2, y - h / 2, w, h);
-      }
-      ctx.globalAlpha = 1;
-    };
+    drawMoon(ctx, { x: moonX, y: moonY, r: moonR, halo: 0.25 + 0.2 * frame.bass, sprite: this.mist, palette });
 
     // Water and fog behind the rock.
-    for (let l = 0; l < this.rockLayer; l++) this.drawLayer(ctx, l, env);
-    drawFog(false);
+    sea.drawBehind(ctx);
+    const fog = { sprite: this.mist, size: S, horizon, waterY: this.waterY, amount: p.fog, rms: frame.rms, dt, env };
+    drawFog(ctx, this.fogBanks, { ...fog, front: false });
 
     // The tower hides beams pointing away from us, so those go first.
     const beams = Array.from({ length: p.beams >= 2 ? 2 : 1 }, (_, i) => this.angle + i * Math.PI);
@@ -435,19 +322,8 @@ export default {
     }
 
     // Water at and in front of the rock.
-    for (let l = this.rockLayer; l < this.layers; l++) this.drawLayer(ctx, l, env);
-
-    // Moonlight on the water.
-    if (moonR > 0) {
-      for (let i = 0; i < 14; i++) {
-        const a = i / 14;
-        const y = horizon + S * 0.03 + a * (height - horizon) * 0.8;
-        const wob = Math.sin(t * 2 + i * 1.7) * 10 * u + this.chop[(i * 3) % CHOP_POINTS] * 12 * u;
-        const w = moonR * (0.4 + a * 1.6) * (0.6 + 0.4 * Math.sin(t * 3 + i * 2.3));
-        ctx.fillStyle = rgba(palette.text, (0.07 + 0.08 * frame.bass) * (1 - a * 0.7));
-        ctx.fillRect(moonX + wob - w / 2, y, w, (1.5 + a * 2.5) * u);
-      }
-    }
+    sea.drawFront(ctx);
+    drawMoonlight(ctx, sea, { x: moonX, r: moonR, horizon, rows: 14, alpha: 0.07 + 0.08 * frame.bass, t, env });
 
     // Spray and foam from the breaking waves.
     ctx.globalCompositeOperation = 'lighter';
@@ -474,24 +350,10 @@ export default {
     }
     this.spray = this.spray.filter((s) => s.life > 0 && s.y < this.waterY + S * 0.3);
 
-    drawFog(true);
+    drawFog(ctx, this.fogBanks, { ...fog, front: true });
 
-    // Rain, slanting and catching the light.
-    if (this.rain.length) {
-      ctx.strokeStyle = rgba(palette.text, 0.18 + 0.15 * this.intensity);
-      ctx.lineWidth = 1.2 * u;
-      ctx.beginPath();
-      for (const r of this.rain) {
-        r.y += dt * r.v * 1.6;
-        r.x -= dt * r.v * 0.25;
-        if (r.y > 1) { r.y -= 1; r.x = (r.x + 0.37) % 1; }
-        if (r.x < 0) r.x += 1;
-        const x = r.x * width, y = r.y * height;
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + 6 * u, y - 26 * u);
-      }
-      ctx.stroke();
-    }
+    // Rain, catching the light.
+    drawRain(ctx, this.rain, env, dt, 0.18 + 0.15 * this.intensity);
     ctx.globalCompositeOperation = 'source-over';
   },
 };

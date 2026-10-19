@@ -1,10 +1,9 @@
 import { Path2D } from 'skia-canvas';
 import { mix, rgba } from '../palettes.js';
-import { clamp, sampleWaveform } from '../util.js';
+import { clamp } from '../util.js';
+import { Sea, Lightning, glowSprite, makeStars, drawStars, makeFog, drawFog, drawMoon, drawMoonlight } from '../sea.js';
 
 const TAU = Math.PI * 2;
-const CHOP_POINTS = 48;   // waveform samples across the sea surface
-const SEA_POINTS = 110;   // points per wave line
 
 // The ship in ship units: length ≈ 1, origin on the waterline, -y is up.
 const DECK = -0.12;
@@ -16,20 +15,6 @@ const MASTS = [
 const BOWSPRIT = [[0.48, -0.19], [0.74, -0.34]];
 const STERN_LANTERN = [-0.52, -0.3];
 const BOW_LANTERN = [0.5, -0.25];
-
-// Lantern / wisp glow, stamped with drawImage (cheaper than shadowBlur).
-function glowSprite(env, color, size) {
-  const s = Math.round(size);
-  const c = env.createCanvas(s * 2, s * 2);
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(s, s, 0, s, s, s);
-  grad.addColorStop(0, rgba(color, 1));
-  grad.addColorStop(0.2, rgba(color, 0.4));
-  grad.addColorStop(1, rgba(color, 0));
-  g.fillStyle = grad;
-  g.fillRect(0, 0, s * 2, s * 2);
-  return c;
-}
 
 export default {
   name: 'ghostship',
@@ -56,23 +41,16 @@ export default {
   setup(ctx, env) {
     const { width, height, u, random, palette, params: p } = env;
     this.t = 0;
-    this.phase = 0;
-    this.chop = new Float32Array(CHOP_POINTS);
-    this.peak = 0.05;
     this.S = Math.min(width * 0.44, height * 0.28) * p.size; // ship length in px
+    this.sea = new Sea(env, { size: this.S, waterY: env.cy + this.S * 0.22 });
+    this.lightning = new Lightning(env);
     this.ship = null; // position/angle springs, set on the first frame
     this.echoes = [];
     this.spray = [];
     this.wisps = [];
     this.glitch = 0;
-    this.bolt = null;
-    this.lastBolt = -10;
-    this.stars = Array.from({ length: Math.round(p.stars) }, () => ({
-      x: random(), y: random(), r: (0.6 + random() * 1.4) * u, phase: random() * TAU,
-    }));
-    this.fogBanks = Array.from({ length: 6 }, (_, i) => ({
-      x: random() * 1.4 - 0.2, y: random(), speed: (0.008 + random() * 0.012) * (i % 2 ? 1 : -1), w: 1.6 + random() * 1.4,
-    }));
+    this.stars = makeStars(random, p.stars, u);
+    this.fogBanks = makeFog(random);
     // Tatters: notches along the bottom of each sail and a few holes, fixed
     // per ship so they don't jump around.
     this.tatters = MASTS.map(() => [0, 1, 2].map(() => ({
@@ -82,65 +60,6 @@ export default {
     this.jibNotches = Array.from({ length: 6 }, () => random());
     this.glow = glowSprite(env, palette.accent, 64 * u);
     this.mist = glowSprite(env, palette.colors[1], 128 * u);
-  },
-
-  // Height of sea layer `l` (0 = farthest) at screen x.
-  seaY(l, x, env) {
-    const { width, params: p } = env;
-    const n = this.layers, d = n > 1 ? l / (n - 1) : 1;
-    const k = this.shipLayer;
-    // Far layers bunch up towards the horizon, near ones spread to the bottom.
-    const base = l <= k
-      ? this.waterY - (k - l) * this.S * 0.07
-      : this.waterY + ((l - k) / Math.max(1, n - 1 - k)) ** 1.3 * Math.min(env.height * 0.92 - this.waterY, this.S * 0.85);
-    const amp = this.S * 0.07 * (0.4 + 1.1 * d) * p.swell * (0.45 + 1.1 * this.bass);
-    const ph = this.phase * (0.7 + 0.5 * d) + l * 1.9;
-    const swell = Math.sin((x / width) * TAU * 1.1 + ph) * 0.6
-      + Math.sin((x / width) * TAU * 2.3 - ph * 1.3 + l) * 0.3
-      + Math.sin((x / width) * TAU * 4.7 + ph * 1.7 + l * 3) * 0.1;
-    // The waveform itself, shifted per layer so the layers don't match.
-    const cx = ((x / width) * (CHOP_POINTS - 1) + l * 11) % (CHOP_POINTS - 1);
-    const i = Math.floor(cx);
-    const wave = this.chop[i] + (this.chop[i + 1] - this.chop[i]) * (cx - i);
-    const chopAmp = this.S * (l === this.shipLayer ? 0.1 : 0.04 + 0.06 * d) * p.chop;
-    return base + swell * amp + wave * chopAmp;
-  },
-
-  drawLayer(ctx, l, env) {
-    const { width, height, u, palette } = env;
-    const n = this.layers, d = n > 1 ? l / (n - 1) : 1;
-    const line = new Path2D();
-    for (let i = 0; i <= SEA_POINTS; i++) {
-      const x = (i / SEA_POINTS) * (width + 40 * u) - 20 * u;
-      const y = this.seaY(l, x, env);
-      i ? line.lineTo(x, y) : line.moveTo(x, y);
-    }
-    const body = new Path2D(line);
-    body.lineTo(width + 20 * u, height);
-    body.lineTo(-20 * u, height);
-    body.closePath();
-
-    // Far water is paler (haze), near water darker but slightly see-through,
-    // so the ghost ship shows faintly under the surface.
-    const top = this.seaY(l, 0, env) - this.S * 0.15;
-    const grad = ctx.createLinearGradient(0, top, 0, height);
-    grad.addColorStop(0, rgba(mix(palette.bg[1], palette.colors[0], 0.75 - 0.4 * d), 0.97 - 0.1 * d));
-    grad.addColorStop(1, rgba(palette.bg[0], 0.98));
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = grad;
-    ctx.fill(body);
-
-    // Glowing crest: a wide faint halo under a thin bright line.
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineJoin = 'round';
-    const crest = l === this.shipLayer ? palette.colors[2] : palette.colors[1];
-    const lift = 0.5 + 0.5 * this.pulse;
-    ctx.strokeStyle = rgba(crest, (0.05 + 0.08 * d) * lift);
-    ctx.lineWidth = (10 + 8 * d) * u;
-    ctx.stroke(line);
-    ctx.strokeStyle = rgba(crest, (0.3 + 0.55 * d) * (0.6 + 0.4 * lift));
-    ctx.lineWidth = (1.2 + 1.6 * d) * u;
-    ctx.stroke(line);
   },
 
   // Builds the ship's paths for this frame (sails move, so they're rebuilt).
@@ -305,93 +224,28 @@ export default {
     const t = this.t;
     const S = this.S;
     this.pulse = frame.pulse;
-    this.bass = frame.bass;
     this.mid = frame.mid;
-    this.layers = Math.max(2, Math.min(6, Math.round(p.waves)));
-    this.shipLayer = Math.max(0, Math.min(this.layers - 1, Math.round((this.layers - 1) * 0.4)));
-    this.waterY = cy + S * 0.22;
-    this.phase += dt * p.speed * (0.9 + 1.6 * frame.rms);
-
-    // Sea surface from the waveform: normalised to its recent peak and eased
-    // between frames so it rolls instead of buzzing.
-    const raw = sampleWaveform(frame.waveform, CHOP_POINTS);
-    let peak = 0;
-    for (const v of raw) peak = Math.max(peak, Math.abs(v));
-    this.peak = Math.max(this.peak * 0.995, peak, 0.02);
-    for (let i = 0; i < CHOP_POINTS; i++) {
-      const edge = Math.min(1, i / 4, (CHOP_POINTS - 1 - i) / 4);
-      this.chop[i] += ((raw[i] / this.peak) * edge - this.chop[i]) * 0.45;
-    }
+    const sea = this.sea;
+    sea.update(frame, dt, p.speed);
 
     // Sky: stars and moon.
-    const horizon = this.seaY(0, cx, env);
-    for (const s of this.stars) {
-      const y = s.y * horizon * 0.95;
-      const tw = 0.35 + 0.35 * Math.sin(t * 2.2 + s.phase) + 0.4 * frame.high;
-      ctx.fillStyle = rgba(palette.text, clamp(tw) * 0.8);
-      ctx.fillRect(s.x * width, y, s.r, s.r);
-    }
+    const horizon = sea.y(0, cx);
+    drawStars(ctx, this.stars, env, horizon, t, frame.high);
     const moonR = S * 0.11 * p.moon;
     const moonX = cx + Math.min(width * 0.3, S * 0.65);
     const moonY = Math.max(moonR * 2.2, cy - S * 0.78);
-    if (moonR > 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.35 + 0.3 * frame.bass;
-      const g = moonR * 7;
-      ctx.drawImage(this.mist, moonX - g, moonY - g, g * 2, g * 2);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = 'source-over';
-      const mg = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, 0, moonX, moonY, moonR);
-      mg.addColorStop(0, mix(palette.text, '#ffffff', 0.5));
-      mg.addColorStop(1, mix(palette.text, palette.colors[1], 0.35));
-      ctx.fillStyle = mg;
-      ctx.beginPath();
-      ctx.arc(moonX, moonY, moonR, 0, TAU);
-      ctx.fill();
-      ctx.fillStyle = rgba(palette.colors[0], 0.25);
-      for (const [dx, dy, r] of [[-0.3, -0.2, 0.22], [0.25, 0.1, 0.16], [-0.05, 0.4, 0.12], [0.35, -0.35, 0.09]]) {
-        ctx.beginPath();
-        ctx.arc(moonX + dx * moonR, moonY + dy * moonR, r * moonR, 0, TAU);
-        ctx.fill();
-      }
-    }
+    drawMoon(ctx, { x: moonX, y: moonY, r: moonR, halo: 0.35 + 0.3 * frame.bass, craters: true, sprite: this.mist, palette });
 
     // Lightning: a bolt behind the sea and a flash over everything.
-    if (p.lightning > 0 && frame.onset && frame.onsetStrength > 0.6 && t - this.lastBolt > 5 / p.lightning && random() < 0.3 * p.lightning) {
-      this.lastBolt = t;
-      const pts = [];
-      let x = width * (0.1 + random() * 0.8), y = 0;
-      while (y < horizon) {
-        pts.push([x, y]);
-        y += (20 + random() * 50) * u;
-        x += (random() - 0.5) * 70 * u;
-      }
-      pts.push([x, horizon]);
-      this.bolt = { pts, life: 1 };
-    }
-    if (this.bolt) {
-      const b = this.bolt;
-      const on = b.life > 0.6 || Math.sin(b.life * 40) > 0;
-      if (on) {
-        const path = new Path2D();
-        b.pts.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = rgba(palette.colors[2], 0.15 * b.life);
-        ctx.lineWidth = 14 * u;
-        ctx.stroke(path);
-        ctx.strokeStyle = rgba('#ffffff', 0.9 * b.life);
-        ctx.lineWidth = 2 * u;
-        ctx.stroke(path);
-      }
-    }
+    this.lightning.strike(frame, t, horizon, p.lightning);
+    this.lightning.drawBolt(ctx);
 
     // Ship pose: springs towards the sea's height and slope under the hull,
     // with a kick knocking it down and over.
     const shipX = cx + Math.sin(t * 0.09) * width * 0.04;
     const half = S * 0.4;
-    const yA = this.seaY(this.shipLayer, shipX - half, env), yB = this.seaY(this.shipLayer, shipX + half, env);
-    const yMid = this.seaY(this.shipLayer, shipX, env);
+    const yA = sea.y(sea.anchor, shipX - half), yB = sea.y(sea.anchor, shipX + half);
+    const yMid = sea.y(sea.anchor, shipX);
     const targetY = (yA + yB + yMid * 2) / 4 - S * 0.015;
     const targetA = clamp(Math.atan2(yB - yA, half * 2) * 1.6 * p.rock, -0.5, 0.5);
     if (!this.ship) this.ship = { y: targetY, vy: 0, a: targetA, va: 0, side: 1 };
@@ -408,25 +262,9 @@ export default {
     const pose = { x: shipX, y: sh.y, a: sh.a, scale: S };
 
     // Water behind the ship.
-    for (let l = 0; l < this.shipLayer; l++) this.drawLayer(ctx, l, env);
-
-    // Fog behind the ship.
-    const drawFog = (front) => {
-      if (p.fog <= 0) return;
-      ctx.globalCompositeOperation = 'lighter';
-      for (const [i, f] of this.fogBanks.entries()) {
-        if ((i % 3 === 0) !== front) continue;
-        f.x += f.speed * dt * (1 + frame.rms);
-        if (f.x > 1.6) f.x = -0.6;
-        if (f.x < -0.6) f.x = 1.6;
-        const w = S * f.w, h = S * (front ? 0.22 : 0.3);
-        const y = front ? height - (height - this.waterY) * (0.25 + f.y * 0.3) : horizon - S * 0.05 + f.y * S * 0.18;
-        ctx.globalAlpha = clamp((front ? 0.12 : 0.18) * p.fog * (0.6 + 0.6 * frame.rms));
-        ctx.drawImage(this.mist, f.x * width - w / 2, y - h / 2, w, h);
-      }
-      ctx.globalAlpha = 1;
-    };
-    drawFog(false);
+    sea.drawBehind(ctx);
+    const fog = { sprite: this.mist, size: S, horizon, waterY: sea.waterY, amount: p.fog, rms: frame.rms, dt, env };
+    drawFog(ctx, this.fogBanks, { ...fog, front: false });
 
     // Ghost ship: echoes, flicker, a doubled copy on transients.
     const shipPaths = this.buildShip(p, frame);
@@ -491,21 +329,8 @@ export default {
     this.wisps = this.wisps.filter((w) => w.life > 0);
 
     // Water at and in front of the ship.
-    for (let l = this.shipLayer; l < this.layers; l++) this.drawLayer(ctx, l, env);
-
-    // Moonlight on the water: broken streaks under the moon.
-    if (moonR > 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      const rows = 16;
-      for (let i = 0; i < rows; i++) {
-        const a = i / rows;
-        const y = horizon + S * 0.03 + a * (height - horizon) * 0.8;
-        const wob = Math.sin(t * 2 + i * 1.7) * 10 * u + this.chop[(i * 3) % CHOP_POINTS] * 12 * u;
-        const w = moonR * (0.4 + a * 1.6) * (0.6 + 0.4 * Math.sin(t * 3 + i * 2.3));
-        ctx.fillStyle = rgba(palette.text, (0.1 + 0.12 * frame.bass) * (1 - a * 0.7));
-        ctx.fillRect(moonX + wob - w / 2, y, w, (1.5 + a * 2.5) * u);
-      }
-    }
+    sea.drawFront(ctx);
+    drawMoonlight(ctx, sea, { x: moonX, r: moonR, horizon, rows: 16, alpha: 0.1 + 0.12 * frame.bass, t, env });
 
     // Spray off the bow and crest on kicks.
     if (frame.kick && p.spray > 0) {
@@ -528,15 +353,8 @@ export default {
     }
     this.spray = this.spray.filter((s) => s.life > 0 && s.y < height);
 
-    drawFog(true);
-
-    if (this.bolt) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = rgba(palette.colors[2], 0.22 * this.bolt.life ** 2);
-      ctx.fillRect(0, 0, width, height);
-      this.bolt.life -= dt / 0.45;
-      if (this.bolt.life <= 0) this.bolt = null;
-    }
+    drawFog(ctx, this.fogBanks, { ...fog, front: true });
+    this.lightning.drawFlash(ctx, dt);
     ctx.globalCompositeOperation = 'source-over';
   },
 };
