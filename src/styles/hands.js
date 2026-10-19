@@ -22,6 +22,7 @@ const CREASES = [ // palm lines as quadratic curves: start, control, end
   [[0.16, -0.3], [0.03, -0.16], [0.05, 0]],
 ];
 const LIGHT = [-0.6, -0.8]; // light comes from the top left
+const PALM_DEPTH = 0.05;    // half the palm's thickness
 
 // Tapered capsule from (x0, y0, r0) to (x1, y1, r1).
 function addCapsule(path, x0, y0, r0, x1, y1, r1) {
@@ -58,12 +59,14 @@ export default {
     palm: 'auto',   // centre hand: auto/front shows the palm, back shows the back of the hand
     echo: 1,        // ghost of the centre hand on each kick (0 = off)
     ash: 50,        // drifting ash specks (0 = off)
+    rotate: 0,      // spin the hands in 3D, in turns per second (try 0.1–0.5, negative = other way)
   },
 
   setup(ctx, env) {
     const { width, height, cx, cy, u, random, params: p } = env;
     const size = Math.min(width, height);
     this.t = 0;
+    this.spin = 0;
     this.centre = {
       mirror: 1, size: Math.min(width * 0.52, height * 0.36) * p.scale, light: 1,
       curls: [0, 0, 0, 0, 0], twitch: random() * 10,
@@ -98,6 +101,7 @@ export default {
         grab: 0,
         curls: [0, 0, 0, 0, 0],
         twitch: random() * 10,
+        spinRate: (i % 2 ? 1 : -1) * (0.6 + random() * 0.5), // side hands turn at their own pace
       };
     }).sort((a, b) => a.depth - b.depth);
 
@@ -176,9 +180,10 @@ export default {
       finish();
     }
 
-    const palm = PALM.map(([x, y]) => project([x, y, 0]));
+    // The palm has some thickness, so it doesn't vanish into a line edge-on.
+    const palm = hull(PALM.flatMap(([x, y]) => [project([x, y, PALM_DEPTH]), project([x, y, -PALM_DEPTH])]));
     // Palm sits under the fingers when it faces us, over their bases when it doesn't.
-    pieces.push({ kind: 'palm', pts: palm, z: mean(palm.map((q) => q.z)) - 0.02 * Math.sign(facing || 1), creases: facing > 0.2 ? CREASES.map((c) => c.map(([x, y]) => project([x, y, 0]))) : null });
+    pieces.push({ kind: 'palm', pts: palm, knuckles: project([0.03, -0.5, 0]), wrist: project([0, 0, 0]), z: mean(palm.map((q) => q.z)) - 0.02 * Math.sign(facing || 1), creases: facing > 0.2 ? CREASES.map((c) => c.map(([x, y]) => project([x, y, 0]))) : null });
     pieces.sort((a, b) => a.z - b.z);
 
     const arm = { A: project([-0.02, 0.0, 0]), B: project([-0.02, h.arm, 0]) };
@@ -221,7 +226,7 @@ export default {
         const path = new Path2D();
         pc.pts.forEach((q, i) => (i ? path.lineTo(q.x, q.y) : path.moveTo(q.x, q.y)));
         path.closePath();
-        const c = pc.pts[5], w = pc.pts[0];
+        const c = pc.knuckles, w = pc.wrist;
         const g = ctx.createRadialGradient(c.x * 0.6 + w.x * 0.4, c.y * 0.6 + w.y * 0.4, 0, c.x * 0.5 + w.x * 0.5, c.y * 0.5 + w.y * 0.5, h.size * 0.42);
         g.addColorStop(0, hi);
         g.addColorStop(0.6, mid);
@@ -280,6 +285,7 @@ export default {
     const dt = 1 / fps;
     this.t += dt;
     const t = this.t;
+    this.spin += p.rotate * TAU * dt;
 
     // Ash drifts down through the dark.
     if (this.ash.length) {
@@ -308,7 +314,7 @@ export default {
       h.y = ay - h.dir[1] * dist;
       const pointing = Math.atan2(-h.dir[1], -h.dir[0]) + h.aim + 0.12 * Math.sin(t * 0.7 + h.phase);
       h.roll = pointing + Math.PI / 2;
-      h.yaw = (h.back ? Math.PI : 0) + 0.35 * Math.sin(t * 0.5 * p.speed + h.phase * 2);
+      h.yaw = (h.back ? Math.PI : 0) + 0.35 * Math.sin(t * 0.5 * p.speed + h.phase * 2) + this.spin * h.spinRate;
       h.pitch = 0.15 * Math.sin(t * 0.4 + h.phase);
       h.arm = (dist + h.size * 0.6) / h.size / Math.max(0.5, Math.abs(Math.cos(h.yaw)));
       // Fingers open while reaching, claw when they grab.
@@ -319,7 +325,7 @@ export default {
     if (p.center <= 0) return;
     const c = this.centre;
     // Three-quarter view, so the curl reads as a claw rather than foreshortening.
-    c.yaw = (p.palm === 'back' ? Math.PI : 0) + 0.65 + 0.25 * Math.sin(t * 0.35);
+    c.yaw = (p.palm === 'back' ? Math.PI : 0) + 0.65 + 0.25 * Math.sin(t * 0.35) + this.spin;
     c.pitch = -0.2 + 0.08 * Math.sin(t * 0.3) - 0.12 * frame.pulse; // lunges towards us on the kick
     c.roll = 0.08 * Math.sin(t * 0.5);
     c.x = cx;
@@ -346,6 +352,22 @@ export default {
     this.drawHand(ctx, c, env, 0.75 + 0.25 * frame.pulse);
   },
 };
+
+// Convex hull of projected points (monotone chain), in drawing order.
+function hull(points) {
+  const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const half = (list) => {
+    const out = [];
+    for (const q of list) {
+      while (out.length >= 2 && cross(out.at(-2), out.at(-1), q) <= 0) out.pop();
+      out.push(q);
+    }
+    out.pop();
+    return out;
+  };
+  return [...half(pts), ...half(pts.reverse())];
+}
 
 function mean(a) {
   return a.reduce((s, v) => s + v, 0) / a.length;

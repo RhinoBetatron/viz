@@ -75,6 +75,9 @@ viz TRACK.wav -s hands -g -d 20 --open
 # Lone hand: just the grasping hand in falling ash
 viz TRACK.wav -s hands -P hands=0 -P ash=80 -g -d 15 --open
 
+# Turning: hands slowly rotating in 3D as they grasp
+viz TRACK.wav -s hands -P rotate=0.25 -g -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -331,6 +334,7 @@ A pale hand rises from the bottom, seen three-quarter on, and clenches into a cl
 | `palm` | auto | Centre hand: `auto` shows the palm, `back` shows the back of the hand (with nails) |
 | `echo` | 1 | Ghost of the centre hand on each kick, 0 = off |
 | `ash` | 50 | Drifting ash specks, 0 = off |
+| `rotate` | 0 | Spin the hands in 3D, in turns per second (try `0.1`–`0.5`, negative = other way). The centre hand turns like a turntable (palm → edge → back with nails), and the side hands roll around their arms at their own pace |
 
 ---
 
@@ -492,6 +496,8 @@ viz track.wav -s hands -g --grain 16                       # grainy b&w film loo
 viz track.wav -s hands -P palm=back -P hands=10            # back of the hand, crowd of arms
 viz track.wav -s hands -p blood                            # blood-lit hands
 viz track.wav -s hands -P grip=0.6 -P tremble=2            # gentler grip, nervous twitching
+viz track.wav -s hands -P rotate=0.25                      # hands slowly turning in 3D
+viz track.wav -s hands -P rotate=-0.6 -P hands=10          # fast reverse spin, crowd of arms
 viz track.wav --auto hands,occult                          # hands in the calm parts, sigils on drops
 
 # ASCII

@@ -197,6 +197,9 @@ viz TRACK.wav -s hands -g -d 20 --open
 # Lone hand: just the grasping hand in falling ash
 viz TRACK.wav -s hands -P hands=0 -P ash=80 -g -d 15 --open
 
+# Turning: hands slowly rotating in 3D as they grasp
+viz TRACK.wav -s hands -P rotate=0.25 -g -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -454,7 +457,10 @@ Deep green vines creep in from the edges and wind around the centre in opposite 
 
 ### `hands`: grasping hands
 
-<img src="docs/gifs/hands.gif" width="260" alt="hands style">
+<img src="docs/gifs/hands.gif" width="260" alt="hands style"> <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands style with rotate=0.25">
+
+*Left: default. Right: `-P rotate=0.25`.*
+
 A pale hand rises from the bottom, seen three-quarter on, and clenches into a claw on every kick before letting go again. Arms reach in from the dark around it, sliding in and out with the music. They lunge and grab on kicks, open their fingers as they reach, and twitch with the high frequencies. The hands are 3D models (palm, jointed fingers, thumb) shaded like bare mannequin limbs. The arms fade into the dark, and on each kick a ghost of the centre hand expands outward. Ash drifts down through the frame. Uses the `gloom` palette (greyscale) unless you pass `-p`. Add `-g` for film grain.
 
 | param | default | |
@@ -469,6 +475,7 @@ A pale hand rises from the bottom, seen three-quarter on, and clenches into a cl
 | `palm` | auto | Centre hand: `auto` shows the palm, `back` shows the back of the hand (with nails) |
 | `echo` | 1 | Ghost of the centre hand on each kick, 0 = off |
 | `ash` | 50 | Drifting ash specks, 0 = off |
+| `rotate` | 0 | Spin the hands in 3D, in turns per second (try `0.1`–`0.5`, negative = other way). The centre hand turns like a turntable (palm → edge → back with nails), and the side hands roll around their arms at their own pace |
 
 ---
 
@@ -634,6 +641,8 @@ viz track.wav -s hands -g --grain 16                       # grainy b&w film loo
 viz track.wav -s hands -P palm=back -P hands=10            # back of the hand, crowd of arms
 viz track.wav -s hands -p blood                            # blood-lit hands
 viz track.wav -s hands -P grip=0.6 -P tremble=2            # gentler grip, nervous twitching
+viz track.wav -s hands -P rotate=0.25                      # hands slowly turning in 3D
+viz track.wav -s hands -P rotate=-0.6 -P hands=10          # fast reverse spin, crowd of arms
 viz track.wav --auto hands,occult                          # hands in the calm parts, sigils on drops
 
 # ASCII
