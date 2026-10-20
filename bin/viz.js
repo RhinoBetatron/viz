@@ -10,7 +10,7 @@ import { palettes } from '../src/palettes.js';
 import { analyzeStructure, energyBar } from '../src/structure.js';
 import { snapTime } from '../src/beats.js';
 import { effects, parseFx as readFx, fxString } from '../src/fx.js';
-import { compile as compileExpression, signals } from '../src/modulate.js';
+import { compile as compileExpression, signals, lfos } from '../src/modulate.js';
 import { rng } from '../src/util.js';
 
 const BIN = fileURLToPath(import.meta.url);
@@ -149,7 +149,7 @@ program
   .option('--random [seed]', 'random style, palette, settings and effects; prints the command to get it again')
   .option('--list-styles', 'show styles and their --param settings')
   .option('--list-palettes', 'show colour palettes')
-  .option('--list-fx', 'show post-effects, transitions and the signals -P expressions can use')
+  .option('--list-fx', 'show post-effects, transitions, and the signals, LFOs and automation -P can use')
   .showHelpAfterError()
   .action(main);
 
@@ -543,7 +543,11 @@ function listFx() {
   for (const [k, v] of Object.entries(effects)) console.log(`      ${k.padEnd(10)} ${v}`);
   console.log(`\n  Transitions  (--transition, or transition= in a --scene)\n\n      ${transitions.join(', ')}`);
   console.log(`\n  Signals for -P expressions, e.g. -P glow=1+bass*2\n\n      ${Object.keys(signals).join(', ')}`);
-  console.log('      functions: sin cos abs min max floor round sqrt pow clamp, and pi\n');
+  console.log('      functions: sin cos abs min max floor round sqrt pow clamp, and pi');
+  console.log(`\n  LFOs, synced to the beat: ${lfos.map((l) => `${l}(bars)`).join(' ')}, all 0 → 1`);
+  console.log('      e.g. -P "glow=1+2*sine(4)" (one slow swell every 4 bars), square(1/2) flips every beat');
+  console.log('\n  Automation: time=value points, ramped in between');
+  console.log('      e.g. -P "glow=0:50=0.5 0:55.8=3 1:10=1"   (+12=… means 12s into the clip)\n');
 }
 
 function listPalettes() {

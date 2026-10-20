@@ -122,14 +122,19 @@ const mod = (a, n) => ((a % n) + n) % n;
 //   beat, downbeat       true on the frame nearest a beat / the first beat of a bar
 //   beatPhase, barPhase  0 → 1 through the current beat / bar
 //   beatIndex, bar       beat and bar number in the track
+//   bars                 position in bars since the grid's first downbeat,
+//                        counting up smoothly (what LFOs run on)
+//   trackTime            seconds into the track
 export function tagFrames(frames, grid, fps, start = 0) {
   const h = 0.5 / fps;
   for (const f of frames) {
+    const t = start + f.time;
+    f.trackTime = t;
     if (!grid) {
-      Object.assign(f, { beat: false, downbeat: false, beatPhase: 0, barPhase: 0, beatIndex: 0, bar: 0 });
+      // No steady beat: bars tick at 120 BPM so LFOs still move.
+      Object.assign(f, { beat: false, downbeat: false, beatPhase: 0, barPhase: 0, beatIndex: 0, bar: 0, bars: t / 2 });
       continue;
     }
-    const t = start + f.time;
     const b = (t - grid.offset) / grid.period;
     const lo = Math.floor((t - h - grid.offset) / grid.period);
     const hi = Math.floor((t + h - grid.offset) / grid.period);
@@ -139,6 +144,7 @@ export function tagFrames(frames, grid, fps, start = 0) {
     f.beatPhase = b - Math.floor(b);
     f.bar = Math.floor(b / BEATS_PER_BAR);
     f.barPhase = mod(b, BEATS_PER_BAR) / BEATS_PER_BAR;
+    f.bars = b / BEATS_PER_BAR;
   }
   return frames;
 }

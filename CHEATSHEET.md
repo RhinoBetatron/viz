@@ -275,7 +275,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `-t, --title <text>` | Big title text | |
 | `--subtitle <text>` | Smaller spaced-out text under the title | |
 | `--font <family>` | Font for the title and subtitle (any installed font) | Helvetica Neue |
-| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below. The value can follow the music: `-P "glow=1+pulse*3"`, see [audio-driven settings](#audio-driven-settings--p-keyexpression) | |
+| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below. The value can follow the music (`-P "glow=1+pulse*3"`), an LFO (`-P "glow=1+2*sine(4)"`) or automation (`-P "glow=0:50=0.5 1:05=3"`), see [audio-driven settings](#audio-driven-settings--p-keyexpression) | |
 | `--scene <time=style…>` | Switch to another style at a point in the track (repeatable), see [Scenes](#scenes-blending-between-styles) | |
 | `--blend <sec>` | How long scene transitions take | `2` (`0.8` for flash and zoom, `0.6` for glitch, `1.2` for wipe) |
 | `--analyze` | Find the track's sections (intro, drop, breakdown, build, outro) and print a `--scene` command for them. Doesn't render. See [Automatic sections](#automatic-sections---analyze----auto) | |
@@ -817,7 +817,7 @@ With a busy mix (bass and synths hitting with the drums), kick and hit detection
 
 ## Audio-driven settings: `-P key=expression`
 
-Any number setting can follow the music. Write an expression instead of a number:
+Any number setting can follow the music, oscillate with an [LFO](#lfos-and-automation) or follow [automation](#lfos-and-automation). Write an expression instead of a number:
 
 ```bash
 viz track.wav -s radial -P "spin=bass*0.3"           # spins when the bass hits
@@ -841,6 +841,48 @@ Operators `+ - * / ^ ( )` and the functions `sin cos abs min max floor round sqr
 - A word that isn't a signal (`symbol=eye`, `on=bar`) stays a word. A typo like `glow=1+bas*2` gets an error before anything renders.
 - Settings that are only read once at the start (counts like `floaters`, `ash`, `curtains` in some styles) take the value from the first frame.
 - `spin` in `radial` and `occult` adds up frame by frame, so a spin driven by the music speeds up and slows down smoothly. Some other speed settings (`speed` in `hands`, `shadows`, `aurora`) jump when modulated, so drive sizes, glows and counts there instead.
+
+### LFOs and automation
+
+Settings can also move on their own, in time with the track.
+
+**LFOs** go inside an expression. Each one takes a period in **bars** and runs 0 → 1, locked to the [beat grid](#the-beat-grid). Every cycle starts on a downbeat of the track, so it lines up the same way whatever `--start` is.
+
+```bash
+viz track.wav -s occult -P "scale=0.7+0.4*sine(2)"        # breathes in and out every 2 bars
+viz track.wav -s radial -P "glow=1+2*tri(4)"              # glow rises and falls over 4 bars
+viz track.wav -s bars   -P "height=0.2+0.3*saw(1)"        # grows through each bar, drops on the downbeat
+viz track.wav -s wave   -P "lines=1+2*square(1/2)"        # flips between 1 and 3 lines every beat
+viz track.wav -s aurora -P "height=0.6+0.8*noise(2)"      # wanders to a new random height every 2 bars
+viz track.wav -s occult -P "glow=1+3*sine(4)*bass"        # mix with the audio: a 4-bar swell, only when the bass is in
+```
+
+| LFO | shape |
+|---|---|
+| `sine(bars)` | Smooth wave, lowest on the downbeat, peak halfway |
+| `tri(bars)` | Straight up, straight down |
+| `saw(bars)` | Ramps up, drops back on the downbeat |
+| `square(bars)` | 1 for the first half, 0 for the second |
+| `noise(bars)` | A smooth glide to a new random value each period |
+
+The period can be a fraction: `sine(1/4)` cycles every beat. An optional second argument shifts the phase (0–1): `sine(4, 0.5)` starts at the top. Two `noise()` with the same period move together, so give one a phase to make them differ. Without a steady beat, a bar counts as 2 seconds (120 BPM).
+
+**Automation** sets a value at points in time and ramps in a straight line between them, like a DAW automation lane. Write `time=value` pairs separated by spaces:
+
+```bash
+# Glow builds from 0.5 to 3 over the build-up, then settles after the drop
+viz track.wav -s occult --start 0:45 -d 30 -P "glow=0:50=0.5 0:55.8=3 1:10=1"
+
+# Seconds into the clip with +, so it moves with --start: zoom out over the first 10s
+viz track.wav -s radial -P "radius=+0=0.1 +10=0.23"
+
+# Per scene, too
+--scene "1:05=vines,growth=1:05=0.3 1:20=2"
+```
+
+Times are track times, like `--scene` (`1:05`, `65`), or seconds into the clip with a `+`. The value holds before the first point and after the last. In a `--scene`, separate the points with spaces, not commas.
+
+For loops (`--loop`), pick an LFO period that fits the loop's bar count (a 4-bar loop with `sine(2)` or `sine(4)`), so the setting is in the same place at the join.
 
 ---
 
