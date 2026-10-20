@@ -7,57 +7,11 @@
 //   4. strongest novelty peaks become boundaries, snapped to bar lines
 //   5. sections are rated by energy and split into calm / intense
 import { analyze } from './audio.js';
+import { findBeats, downbeatOffset, mean, smooth } from './beats.js';
 
 const FPS = 40;           // analysis resolution (25ms)
 const KERNEL = 16;        // beats each side of the novelty kernel (4 bars)
 const BLOCKS = '▁▂▃▄▅▆▇█';
-
-const mean = (a) => a.reduce((s, v) => s + v, 0) / (a.length || 1);
-
-function smooth(arr, sigma) {
-  const r = Math.ceil(sigma * 3);
-  const w = Array.from({ length: r * 2 + 1 }, (_, i) => Math.exp(-((i - r) ** 2) / (2 * sigma * sigma)));
-  return arr.map((_, i) => {
-    let s = 0, n = 0;
-    for (let k = -r; k <= r; k++) if (arr[i + k] !== undefined) { s += arr[i + k] * w[k + r]; n += w[k + r]; }
-    return s / n;
-  });
-}
-
-// Beat period (in frames) and phase. Returns null when there's no steady pulse.
-function findBeats(env, fps) {
-  const n = env.length;
-  const e = smooth(env, 1);
-  const m = mean(e);
-  const x = e.map((v) => v - m);
-  const minLag = Math.floor((fps * 60) / 180), maxLag = Math.ceil((fps * 60) / 70);
-  const ac = [];
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let s = 0;
-    for (let i = 0; i + lag < n; i++) s += x[i] * x[i + lag];
-    ac[lag] = s / (n - lag);
-  }
-  const zero = x.reduce((s, v) => s + v * v, 0) / n;
-  // Lean towards ~120 BPM so we don't lock onto half or double time.
-  let best = minLag, bestScore = -Infinity;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    const bpm = (fps * 60) / lag;
-    const score = ac[lag] * Math.exp(-0.5 * (Math.log2(bpm / 120) / 0.9) ** 2);
-    if (score > bestScore) { bestScore = score; best = lag; }
-  }
-  if (ac[best] / (zero || 1) < 0.08) return null;
-
-  // Fine search: the period and phase whose beat grid lands on the most hits.
-  let period = best, phase = 0, top = -Infinity;
-  for (let p = best * 0.97; p <= best * 1.03; p += 0.005) {
-    for (let ph = 0; ph < p; ph += 0.5) {
-      let s = 0;
-      for (let t = ph; t < n; t += p) s += e[Math.round(t)] ?? 0;
-      if (s > top) { top = s; period = p; phase = ph; }
-    }
-  }
-  return { period, phase };
-}
 
 // Foote novelty on z-scored beat features.
 function novelty(feats) {
@@ -157,7 +111,7 @@ export async function analyzeStructure(file, { minBars = 4 } = {}) {
     const votes = [0, 0, 0, 0];
     for (const c of cuts) for (let o = -1; o <= 1; o++) votes[(c + o + 400) % 4] += nov[c] * (o === 0 ? 1 : 0.4);
     barPhase = votes.indexOf(Math.max(...votes));
-  }
+  } else if (grid) barPhase = downbeatOffset(beats, frames);
   cuts = [...new Set(cuts.map((c) => Math.round((c - barPhase) / beatsPerBar) * beatsPerBar + barPhase))].sort((a, b) => a - b);
 
   const bounds = [0, ...cuts, beats.length];
@@ -214,7 +168,9 @@ export async function analyzeStructure(file, { minBars = 4 } = {}) {
     } else merged.push({ ...s });
   }
 
-  return { duration, bpm: grid ? (FPS * 60) / grid.period : null, sections: merged };
+  // The beat grid in seconds, with its offset on a downbeat (see beats.js).
+  const beatGrid = grid && { bpm: (FPS * 60) / grid.period, period: grid.period / FPS, offset: beats[barPhase] / FPS };
+  return { duration, bpm: beatGrid?.bpm ?? null, grid: beatGrid, sections: merged };
 }
 
 export const energyBar = (v, width = 8) => {
