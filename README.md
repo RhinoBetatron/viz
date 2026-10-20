@@ -11,7 +11,7 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 
 ## Gallery
 
-All rendered from the same track, square format. The first six rows are each style at default settings. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode.
+All rendered from the same track, square format. The first six rows are each style at default settings. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode. [More looks](#more-looks) below shows palettes, effects, transitions and music-driven settings.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
@@ -32,6 +32,38 @@ All rendered from the same track, square format. The first six rows are each sty
 | `-s lighthouse -P rain=2 -P crash=2 -P beams=1` | `--scene …=occult,transition=flash` | `-s hands -P rotate=0.25` |
 | <img src="docs/gifs/ascii_hands.gif" width="260" alt="ascii_hands"> | <img src="docs/gifs/ascii_vines.gif" width="260" alt="ascii_vines"> | <img src="docs/gifs/ascii_wave.gif" width="260" alt="ascii_wave"> |
 | `-s hands --ascii 16` | `-s vines --ascii 16` | `-s wave --ascii 16` |
+
+### More looks
+
+The same styles with other palettes and settings, [post-effects](#post-effects---fx), the new [transitions](#scenes-blending-between-styles) (each switching on the drop) and [settings that follow the music](#audio-driven-settings--p-keyexpression). Same track, the 4 seconds around the drop.
+
+**Palettes and settings**
+
+| <img src="docs/gifs/var_bars_sunset.gif" width="260" alt="var_bars_sunset"> | <img src="docs/gifs/var_radial_acid.gif" width="260" alt="var_radial_acid"> | <img src="docs/gifs/var_wave_circle.gif" width="260" alt="var_wave_circle"> |
+|:---:|:---:|:---:|
+| `-s bars -p sunset -P bars=24 -P mirror=0 -P reflect=0` | `-s radial -p acid -P bars=60 -P spin=0.25` | `-s wave -p vapor -P shape=circle -P amp=0.4` |
+| <img src="docs/gifs/var_occult_candle.gif" width="260" alt="var_occult_candle"> | <img src="docs/gifs/var_industrial_steel.gif" width="260" alt="var_industrial_steel"> | <img src="docs/gifs/var_particles_ice.gif" width="260" alt="var_particles_ice"> |
+| `-s occult -p candle -P symbol=triplemoon` | `-s industrial -p steel -P hud=0 -P sparks=2` | `-s particles -p ice -P burst=200 -P speed=22` |
+
+**Post-effects: `--fx`**
+
+| <img src="docs/gifs/fx_occult_bloom.gif" width="260" alt="fx_occult_bloom"> | <img src="docs/gifs/fx_industrial_vhs.gif" width="260" alt="fx_industrial_vhs"> | <img src="docs/gifs/fx_wave_crt.gif" width="260" alt="fx_wave_crt"> |
+|:---:|:---:|:---:|
+| `-s occult -P symbol=eye --fx bloom` | `-s industrial --fx vhs,shake` | `-s wave -p vapor --fx vhs,scanlines --grain 8` |
+| <img src="docs/gifs/fx_radial_chroma.gif" width="260" alt="fx_radial_chroma"> | <img src="docs/gifs/fx_reactor_shake.gif" width="260" alt="fx_reactor_shake"> | <img src="docs/gifs/fx_kraken_bloom.gif" width="260" alt="fx_kraken_bloom"> |
+| `-s radial --fx chroma=2,bloom=0.6` | `-s reactor --fx shake=2,vignette` | `-s kraken --fx bloom,chroma` |
+
+**Transitions: `--scene …,transition=`**
+
+| <img src="docs/gifs/tr_wipe.gif" width="195" alt="tr_wipe"> | <img src="docs/gifs/tr_zoom.gif" width="195" alt="tr_zoom"> | <img src="docs/gifs/tr_glitch.gif" width="195" alt="tr_glitch"> | <img src="docs/gifs/tr_kick.gif" width="195" alt="tr_kick"> |
+|:---:|:---:|:---:|:---:|
+| `bars → occult, transition=wipe` | `vines → reactor, transition=zoom` | `wave → industrial, transition=glitch` | `abyss → kraken, transition=kick` |
+
+**Settings that follow the music: `-P key=expression`**
+
+| <img src="docs/gifs/mod_radial_pulse.gif" width="195" alt="mod_radial_pulse"> | <img src="docs/gifs/mod_occult_beat.gif" width="195" alt="mod_occult_beat"> | <img src="docs/gifs/mod_aurora_bar.gif" width="195" alt="mod_aurora_bar"> | <img src="docs/gifs/mod_hands_bass.gif" width="195" alt="mod_hands_bass"> |
+|:---:|:---:|:---:|:---:|
+| `-s radial -P glow=1+pulse*3 -P spin=bass*0.3` | `-s occult -P symbol=cycle -P on=beat -P cycle=2` | `-s aurora -P height=0.7+bar*0.6` | `-s hands -g -P rotate=bass*0.5 --fx bloom=0.5` |
 
 ## Contents
 
