@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import os from 'node:os';
 import { Canvas, loadImage } from 'skia-canvas';
 import { analyze } from './audio.js';
 import { palettes, paletteFromImage, rgba } from './palettes.js';
@@ -304,6 +305,14 @@ export async function render(opts) {
     input, output, width, height, fps, start, duration: clipDuration, fade, crf, preset,
     grayscale, grain: grain ?? (grayscale ? 10 : 0),
   });
+  // Frames are drawn in order (styles keep state between frames), but turning
+  // each drawing into pixels runs in the background on skia's thread pool,
+  // several frames at a time. Output is identical to doing it one by one.
+  const depth = Math.max(2, Math.min(8, os.availableParallelism?.() ?? 4));
+  const pending = [];
+  const write = async (buf) => {
+    if (!ff.stdin.write(buf)) await Promise.race([once(ff.stdin, 'drain'), done]);
+  };
   const startedAt = Date.now();
 
   for (const frame of frames) {
@@ -342,11 +351,11 @@ export async function render(opts) {
       }
     }
 
-    if (!ff.stdin.write(canvas.toBufferSync('raw'))) {
-      await Promise.race([once(ff.stdin, 'drain'), done]);
-    }
+    pending.push(canvas.toBuffer('raw'));
+    if (pending.length >= depth) await write(await pending.shift());
     onProgress?.(frame.index + 1, frames.length, (Date.now() - startedAt) / 1000);
   }
+  for (const p of pending.splice(0)) await write(await p);
   ff.stdin.end();
   onStage?.('Encoding');
   await done;
