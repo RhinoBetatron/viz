@@ -1,14 +1,22 @@
 #!/usr/bin/env node
-import { readdir, stat } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { watch as watchPath } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Command, InvalidArgumentError } from 'commander';
-import { render, formats, transitions } from '../src/render.js';
+import { render, formats, transitions, quickBlend } from '../src/render.js';
 import { palettes } from '../src/palettes.js';
 import { analyzeStructure, energyBar } from '../src/structure.js';
+import { snapTime } from '../src/beats.js';
+import { effects, parseFx as readFx, fxString } from '../src/fx.js';
+import { compile as compileExpression, signals } from '../src/modulate.js';
+import { rng } from '../src/util.js';
 
-const STYLES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/styles');
+const BIN = fileURLToPath(import.meta.url);
+const SRC_DIR = path.join(path.dirname(BIN), '../src');
+const STYLES_DIR = path.join(SRC_DIR, 'styles');
+const BATCH_EXT = new Set(['.csv', '.json']);
 const AUDIO_EXT = new Set(['.wav', '.aif', '.aiff', '.flac', '.mp3', '.m4a']);
 
 async function loadStyles() {
@@ -28,12 +36,35 @@ function parseTime(value) {
   return parts.reduce((acc, n) => acc * 60 + n, 0);
 }
 
+// key=value; the value can be an expression of the audio (glow=1+bass*2),
+// which is checked here so typos fail before rendering.
 function parseParam(value, prev = {}) {
   const [key, ...rest] = value.split('=');
   if (!rest.length) throw new InvalidArgumentError(`--param expects key=value, got "${value}"`);
   const raw = rest.join('=');
-  return { ...prev, [key]: raw !== '' && !Number.isNaN(Number(raw)) ? Number(raw) : raw };
+  if (raw !== '' && !Number.isNaN(Number(raw))) return { ...prev, [key]: Number(raw) };
+  try {
+    compileExpression(raw);
+  } catch (err) {
+    throw new InvalidArgumentError(`${key}: ${err.message}`);
+  }
+  return { ...prev, [key]: raw };
 }
+
+function parseFx(value, prev) {
+  try {
+    return readFx(value, prev);
+  } catch (err) {
+    throw new InvalidArgumentError(err.message);
+  }
+}
+
+// Optional-value options: `--loop` alone gives true, `--loop 2` gives "2".
+const optionalNumber = (name) => (value) => {
+  const n = Number(value);
+  if (Number.isNaN(n) || n < 0) throw new InvalidArgumentError(`${name} takes a number of seconds, got "${value}"`);
+  return n;
+};
 
 // "1:05=industrial/steel,ratchet=2,transition=flash" → { time, style, palette, params, … }
 // A leading + makes the time relative to --start: "+12=industrial".
@@ -79,7 +110,7 @@ program
   .name('viz')
   .description('Turn audio into audio-reactive teaser videos for Instagram')
   .version('0.1.0')
-  .argument('[input]', 'audio file (.wav, .aiff, .flac, .mp3) or a folder of them')
+  .argument('[input]', 'audio file (.wav, .aiff, .flac, .mp3), a folder of them, or a .csv/.json batch file')
   .option('-s, --style <name>', `visual style: ${Object.keys(styles).join(', ')}`, 'bars')
   .option('-o, --output <file>', 'output .mp4 (default: <input>_<style>.mp4 next to the input)')
   .option('-f, --format <name>', `canvas preset: ${Object.keys(formats).join(', ')}`, 'reel')
@@ -100,8 +131,13 @@ program
   .option('--scene <time=style>', 'switch style at a track time (1:05=industrial) or seconds into the clip (+12=industrial), e.g. 1:05=occult/blood,symbol=eye (repeatable)', parseScene, [])
   .option('--blend <seconds>', 'how long scene transitions take (flash defaults to 0.8)', Number, 2)
   .option('--transition <type>', `how scenes change: ${transitions.join(', ')}`, 'fade')
+  .option('--snap <unit>', 'move --scene times onto the nearest bar (or beat) of the track: bar, beat')
   .option('--analyze', 'find the sections of the track (intro, drops, breakdowns…) and suggest scene changes, without rendering')
   .option('--auto [styles]', 'switch styles automatically at the detected sections: calm,drop[,build] (default vines,occult)')
+  .option('--hook [lead]', 'start the clip just before the biggest drop (lead = seconds before it, default 2)', optionalNumber('--hook'))
+  .option('--drums <file>', 'drum stem: kicks and hits come from it, everything else from the main track')
+  .option('--fx <list>', `post-effects with optional amounts, e.g. bloom,chroma=2: ${Object.keys(effects).join(', ')}`, parseFx)
+  .option('--loop [seconds]', 'seamless loop: crossfade the end into the start (default 1.5s), length rounded to whole bars', optionalNumber('--loop'))
   .option('--fps <n>', 'frames per second', Number, 30)
   .option('--crf <n>', 'video quality, lower = better/bigger (16–23)', Number, 18)
   .option('--seed <n>', 'random seed for styles with randomness', Number, 1)
@@ -109,15 +145,35 @@ program
   .option('--preview', 'fast low-res 5s draft to check the look')
   .option('--gpu', 'render on the GPU (can be faster for heavy styles)')
   .option('--open', 'open the video when done')
+  .option('--watch', 'keep running: re-render a preview whenever a style file, the track or the cover changes')
+  .option('--random [seed]', 'random style, palette, settings and effects; prints the command to get it again')
   .option('--list-styles', 'show styles and their --param settings')
   .option('--list-palettes', 'show colour palettes')
+  .option('--list-fx', 'show post-effects, transitions and the signals -P expressions can use')
   .showHelpAfterError()
   .action(main);
 
 async function main(input, opts) {
   if (opts.listStyles) return listStyles();
   if (opts.listPalettes) return listPalettes();
+  if (opts.listFx) return listFx();
   if (!input) program.help();
+  if (opts.watch) return watch(input, opts);
+  opts.fx ??= {};
+  if (BATCH_EXT.has(path.extname(input).toLowerCase())) return runBatch(input);
+
+  const given = (name) => program.getOptionValueSource(name) === 'cli';
+  if (opts.hook !== undefined && (given('start') || opts.end !== undefined)) program.error('--hook picks the start itself, so leave out --start / --end');
+  if (opts.snap && !['bar', 'beat'].includes(opts.snap)) program.error('--snap takes bar or beat');
+  const hookLead = opts.hook === true ? 2 : opts.hook;
+  const loop = opts.loop === true ? 1.5 : opts.loop ?? 0;
+
+  let randomSeed = null;
+  if (opts.random !== undefined) {
+    randomSeed = opts.random === true ? 1 + Math.floor(Math.random() * 99999) : Number(opts.random);
+    if (!Number.isInteger(randomSeed)) program.error('--random takes a whole number seed, e.g. --random 42');
+    randomLook(input, opts, randomSeed, given);
+  }
 
   // The -s style (and -p palette) is the opening scene; --scene entries follow it.
   const checkStyle = (name) => styles[name] ?? program.error(`Unknown style "${name}". Available: ${Object.keys(styles).join(', ')}`);
@@ -126,22 +182,24 @@ async function main(input, opts) {
     return name;
   };
   const checkTransition = (name) => (transitions.includes(name) ? name : program.error(`Unknown transition "${name}". Available: ${transitions.join(', ')}`));
-  // A flash should be short and punchy unless a length was asked for.
+  // Flashes, glitches and the like should be short and punchy unless a length was asked for.
   const blendSet = program.getOptionValueSource('blend') !== 'default';
   const transitionSet = program.getOptionValueSource('transition') !== 'default';
-  const toScene = (sc) => {
+  const toScene = (start) => (sc) => {
     const transition = checkTransition(sc.transition ?? opts.transition);
     return {
       ...sc,
-      time: sc.relative ? opts.start + sc.time : sc.time,
+      time: sc.relative ? start + sc.time : sc.time,
       style: checkStyle(sc.style),
       palette: checkPalette(sc.palette ?? opts.palette),
       params: { ...opts.param, ...sc.params },
-      blend: sc.blend ?? (transition === 'flash' && !blendSet ? 0.8 : opts.blend),
+      blend: sc.blend ?? (quickBlend[transition] && !blendSet ? quickBlend[transition] : opts.blend),
       transition,
     };
   };
   const opening = (name, palette, params = {}) => ({ time: -Infinity, style: checkStyle(name), palette: checkPalette(palette ?? opts.palette), params: { ...opts.param, ...params } });
+  checkStyle(opts.style);
+  opts.scene.forEach(toScene(0)); // check names before any analysis
 
   // --auto calm,drop[,build]: each may carry a palette, e.g. vines/verdant.
   let roles;
@@ -156,7 +214,6 @@ async function main(input, opts) {
     if (list.length < 2 || list.length > 3) program.error('--auto takes 2 or 3 styles: calm,drop[,build], e.g. --auto vines,occult');
     roles = { calm: list[0], drop: list[1], build: list[2] ?? list[0] };
   }
-  const manualScenes = [opening(opts.style), ...opts.scene.map(toScene)];
 
   let { width, height } = formats[opts.format] ?? program.error(`Unknown format "${opts.format}". Available: ${Object.keys(formats).join(', ')}`);
   if (opts.size) {
@@ -167,14 +224,14 @@ async function main(input, opts) {
 
   let duration = opts.end !== undefined ? opts.end - opts.start : opts.duration;
   if (duration === Infinity) duration = undefined;
-  // Auto scenes only make sense over a whole track, unless a length was asked for.
-  if ((opts.auto || opts.analyze) && opts.end === undefined && program.getOptionValueSource('duration') === 'default') duration = undefined;
+  // Auto scenes only make sense over a whole track, unless a length (or a hook) was asked for.
+  if ((opts.auto || opts.analyze) && opts.hook === undefined && opts.end === undefined && program.getOptionValueSource('duration') === 'default') duration = undefined;
   if (duration !== undefined && duration <= 0) program.error('--end must be after --start');
   let preset = 'medium';
   if (opts.preview) {
     width = Math.round(width / 4) * 2;
     height = Math.round(height / 4) * 2;
-    if (!opts.auto && manualScenes.length === 1) duration = Math.min(duration ?? 5, 5); // keep the full clip so scene changes are visible
+    if (!opts.auto && !opts.scene.length) duration = Math.min(duration ?? 5, 5); // keep the full clip so scene changes are visible
     preset = 'ultrafast';
   }
 
@@ -186,40 +243,242 @@ async function main(input, opts) {
     : [input];
   if (!inputs.length) program.error(`No audio files found in ${input}`);
   if (inputs.length > 1 && opts.output) program.error('--output can only be used with a single input file');
+  if (inputs.length > 1 && opts.drums) program.error('--drums goes with a single track, not a folder');
 
   for (const file of inputs) {
-    let scenes = manualScenes;
-    if (opts.auto || opts.analyze) {
+    // Sections and the track's beat grid, when something needs them.
+    let structure = null;
+    if (opts.auto || opts.analyze || opts.hook !== undefined || opts.snap) {
       console.error(`\n▶ ${path.basename(file)}: finding sections…`);
-      const structure = await analyzeStructure(file);
+      structure = await analyzeStructure(file);
       printStructure(structure);
-      const auto = autoScenes(structure.sections, roles, opts.start, duration, { blendSet, transitionSet, blend: opts.blend, transition: opts.transition });
+    }
+
+    let start = opts.start;
+    if (opts.hook !== undefined) {
+      const drop = findHook(structure);
+      start = Math.max(0, drop.start - hookLead);
+      console.error(`  Hook: ${drop.label} at ${fmtTime(drop.start)} → clip starts at ${fmtTime(start)} (--start ${start.toFixed(1)})`);
+    }
+
+    let scenes = [opening(opts.style), ...opts.scene.map(toScene(start))];
+    if (opts.auto || opts.analyze) {
+      const auto = autoScenes(structure.sections, roles, start, duration, { blendSet, transitionSet, blend: opts.blend, transition: opts.transition });
       if (opts.analyze) {
         printSuggestion(file, auto, roles);
         continue;
       }
-      scenes = [opening(auto.opening.style, auto.opening.palette), ...auto.changes.map(toScene)];
+      scenes = [opening(auto.opening.style, auto.opening.palette), ...auto.changes.map(toScene(start))];
     }
+    if (opts.snap) {
+      if (!structure.grid) console.error('  --snap: no steady beat found, scene times left as they are');
+      else scenes = scenes.map((sc) => (sc.time === -Infinity ? sc : { ...sc, time: snapTime(sc.time, structure.grid, opts.snap) }));
+    }
+
     const base = path.join(path.dirname(file), path.basename(file, path.extname(file)));
     const name = [...new Set(scenes.map((sc) => sc.style.name))].join('-');
-    const output = opts.output ?? `${base}_${name}${ascii ? '_ascii' : ''}${opts.preview ? '_preview' : ''}.mp4`;
+    const tags = [ascii && 'ascii', loop && 'loop', randomSeed && `r${randomSeed}`, opts.preview && 'preview'].filter(Boolean).map((t) => `_${t}`).join('');
+    const output = opts.output ?? `${base}_${name}${tags}.mp4`;
+    const extras = [opts.grayscale && 'grayscale', ascii && `ascii ${ascii}px`, Object.keys(opts.fx).length && `fx ${fxString(opts.fx)}`, loop && `loop ${loop}s`, opts.drums && `drums: ${path.basename(opts.drums)}`].filter(Boolean);
     console.error(`\n▶ ${path.basename(file)} → ${output}`);
-    console.error(`  ${scenes[0].style.name}${opts.grayscale ? ' (grayscale)' : ''}${ascii ? ` (ascii ${ascii}px)` : ''} · ${width}x${height} @ ${opts.fps}fps · from ${opts.start}s, ${duration === undefined ? 'to the end' : `${duration}s`}`);
-    for (const sc of scenes.slice(1)) console.error(`  ${fmtTime(sc.time)} → ${sc.style.name}${sc.palette ? `/${sc.palette}` : ''} (${sc.transition}${sc.transition === 'cut' ? '' : ` ${sc.blend}s`})`);
+    console.error(`  ${scenes[0].style.name}${extras.length ? ` (${extras.join(', ')})` : ''} · ${width}x${height} @ ${opts.fps}fps · from ${fmtTime(start)}, ${duration === undefined ? 'to the end' : `${duration}s`}`);
+    for (const sc of scenes.slice(1)) console.error(`  ${fmtTime(sc.time)} → ${sc.style.name}${sc.palette ? `/${sc.palette}` : ''} (${sc.transition}${['cut', 'kick'].includes(sc.transition) ? '' : ` ${sc.blend}s`})`);
 
     const t0 = Date.now();
     const result = await render({
       input: file, output, scenes, width, height, duration, preset,
-      fps: opts.fps, start: opts.start, cover: opts.cover, background: opts.bg,
+      fps: opts.fps, start, cover: opts.cover, background: opts.bg,
       title: opts.title, subtitle: opts.subtitle, font: opts.font,
       fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, grayscale: opts.grayscale, grain: opts.grain,
+      fx: opts.fx, loop, drums: opts.drums, grid: structure?.grid,
       onStage: (s) => s !== 'Rendering' && console.error(`  ${s}…`),
       onProgress: progressBar,
     });
     process.stderr.write('\n');
-    console.error(`✔ Done in ${((Date.now() - t0) / 1000).toFixed(1)}s · ${result.duration.toFixed(1)}s clip · ${result.stats.onsets} onsets, ${result.stats.kicks} kicks detected`);
-    if (opts.open) spawn('open', [output], { stdio: 'ignore', detached: true }).unref();
+    const loopNote = loop ? ` (loops${result.loopBars ? ` on ${result.loopBars} bar${result.loopBars > 1 ? 's' : ''}` : ''})` : '';
+    console.error(`✔ Done in ${((Date.now() - t0) / 1000).toFixed(1)}s · ${result.duration.toFixed(1)}s clip${loopNote} · ${result.bpm ? `${result.bpm.toFixed(1)} BPM · ` : ''}${result.stats.onsets} onsets, ${result.stats.kicks} kicks detected`);
+    if (opts.open) openVideo(output);
   }
+}
+
+function openVideo(file) {
+  // In --watch mode QuickTime would keep showing the old render, so close it first.
+  if (process.env.VIZ_WATCH && process.platform === 'darwin') {
+    const abs = path.resolve(file).replace(/["\\]/g, '\\$&');
+    spawnSync('osascript', ['-e', `if application "QuickTime Player" is running then tell application "QuickTime Player" to close (every document whose path is "${abs}")`], { stdio: 'ignore' });
+  }
+  spawn('open', [file], { stdio: 'ignore', detached: true }).unref();
+}
+
+// The drop the clip should open on: the biggest jump up into a loud section,
+// favouring earlier ones a little (the first drop is usually the hook).
+function findHook({ sections, duration }) {
+  let best = null;
+  sections.forEach((s, i) => {
+    if (i === 0) return;
+    const jump = s.energy - sections[i - 1].energy;
+    const score = jump + 0.5 * s.energy + (s.label === 'drop' ? 0.5 : 0) - 0.25 * (s.start / duration);
+    if (jump > 0 && (!best || score > best.score)) best = { ...s, score };
+  });
+  if (!best) program.error('--hook: couldn\'t find a drop in this track. Use --start instead');
+  return best;
+}
+
+// --random: fills in whatever wasn't given on the command line, then prints
+// the full command so a look you like can be rendered again.
+function randomLook(input, opts, seed, given) {
+  const random = rng(seed);
+  const pick = (list) => list[Math.floor(random() * list.length)];
+  const chosen = [];
+  if (!given('style')) opts.style = pick(Object.keys(styles));
+  chosen.push('-s', opts.style);
+  const style = styles[opts.style];
+  if (!style) return; // reported by the caller
+  if (!given('palette') && random() < 0.5) opts.palette = pick(Object.keys(palettes));
+  if (opts.palette && !given('palette')) chosen.push('-p', opts.palette);
+  // Nudge about half the numeric settings, between half and double.
+  for (const [k, v] of Object.entries(style.params ?? {})) {
+    if (k in opts.param || typeof v !== 'number' || v === 0 || random() < 0.5) continue;
+    const value = Number.isInteger(v) && v > 1 ? Math.max(1, Math.round(v * (0.5 + random() * 1.3))) : +(v * 2 ** (random() * 2 - 1)).toFixed(3);
+    opts.param[k] = value;
+    chosen.push('-P', `${k}=${value}`);
+  }
+  if (!given('fx') && random() < 0.6) {
+    const names = Object.keys(effects).filter(() => random() < 0.3);
+    for (const n of names.length ? names : [pick(Object.keys(effects))]) opts.fx[n] = +(0.5 + random()).toFixed(1);
+    chosen.push('--fx', fxString(opts.fx));
+  }
+  if (!given('grain') && !opts.grayscale && random() < 0.3) {
+    opts.grain = Math.round(4 + random() * 14);
+    chosen.push('--grain', String(opts.grain));
+  }
+  // The command as typed, minus --random, plus what was picked.
+  const argv = process.argv.slice(2);
+  const at = argv.indexOf('--random');
+  argv.splice(at, /^\d+$/.test(argv[at + 1] ?? '') ? 2 : 1);
+  const quote = (a) => (/^[\w./:=,+@-]+$/.test(a) ? a : `"${a.replace(/(["\\$`])/g, '\\$1')}"`);
+  console.error(`\n🎲 Random look (seed ${seed}). To render it again:\n`);
+  console.log(['viz', ...argv, ...chosen].map(quote).join(' '));
+}
+
+// --watch: re-runs the same command in a fresh process (so edited style files
+// are reloaded) whenever something it uses changes.
+function watch(input, opts) {
+  const args = process.argv.slice(2).filter((a) => a !== '--watch');
+  if (!opts.preview) args.push('--preview');
+  const watched = [SRC_DIR, input, opts.cover, opts.drums].filter(Boolean);
+  let child = null, timer = null;
+  const run = (reason) => {
+    if (reason) console.error(`\n↻ ${reason} changed, rendering again…`);
+    if (child) child.kill('SIGTERM');
+    const proc = (child = spawn(process.execPath, [BIN, ...args], { stdio: 'inherit', env: { ...process.env, VIZ_WATCH: '1' } }));
+    proc.on('exit', (code, signal) => {
+      if (child !== proc) return; // replaced by a newer run
+      child = null;
+      if (!signal) console.error(code ? '\n  (failed — fix it and save to try again)' : '\n  Watching for changes… (ctrl+c to stop)');
+    });
+  };
+  for (const p of watched) {
+    watchPath(p, { recursive: p === SRC_DIR }, (_event, name) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => run(name ? path.basename(name) : path.basename(p)), 250);
+    });
+  }
+  process.on('SIGINT', () => {
+    child?.kill('SIGTERM');
+    process.exit(130);
+  });
+  run();
+}
+
+// Batch files: one row per video. Columns (CSV) or keys (JSON) are option
+// names, e.g. input,start,style,title. Options given on the command line
+// apply to every row; a row's own values win.
+async function runBatch(file) {
+  const dir = path.dirname(file);
+  const text = await readFile(file, 'utf8');
+  let rows;
+  if (path.extname(file).toLowerCase() === '.json') {
+    const data = JSON.parse(text);
+    rows = Array.isArray(data) ? data : (data.tracks ?? []).map((t) => ({ ...data.defaults, ...t }));
+  } else rows = parseCsv(text);
+  if (!rows.length) program.error(`No rows in ${file}`);
+
+  const common = process.argv.slice(2);
+  common.splice(common.indexOf(file), 1);
+  const failed = [];
+  for (const [i, row] of rows.entries()) {
+    const track = row.input ?? row.file ?? row.track;
+    if (!track) program.error(`Row ${i + 1} of ${file} has no input (add an "input" column)`);
+    const args = [path.resolve(dir, track), ...common, ...rowArgs(row, dir)];
+    console.error(`\n━━ ${i + 1}/${rows.length}: ${path.basename(track)} ━━`);
+    const code = await new Promise((resolve) => spawn(process.execPath, [BIN, ...args], { stdio: 'inherit' }).on('exit', resolve));
+    if (code) failed.push(`${i + 1}: ${track}`);
+  }
+  console.error(`\n${failed.length ? `✖ ${failed.length} of ${rows.length} failed:\n  ${failed.join('\n  ')}` : `✔ All ${rows.length} done`}`);
+  if (failed.length) process.exitCode = 1;
+}
+
+const TRUE = /^(yes|y|true|x|1|on)$/i, FALSE = /^(no|n|false|0|off|)$/i;
+const YES = /^(yes|y|true|x|on)$/i; // for options with an optional number, where 1 means 1
+const PATH_KEYS = new Set(['cover', 'c', 'output', 'o', 'drums']);
+// Repeatable options; in a CSV cell, separate several with ;
+const LIST_KEYS = new Set(['param', 'P', 'scene']);
+
+function rowArgs(row, dir) {
+  const args = [];
+  for (const [key, raw] of Object.entries(row)) {
+    if (['input', 'file', 'track'].includes(key) || raw === undefined || raw === null) continue;
+    const opt = program.options.find((o) => o.long === `--${key}` || o.short === `-${key}`);
+    if (!opt) {
+      const negated = program.options.find((o) => o.long === `--no-${key}`);
+      if (negated && (raw === false || FALSE.test(String(raw)))) args.push(negated.long);
+      else if (!negated) program.error(`Unknown column "${key}" in the batch file (use option names like style, start, title)`);
+      continue;
+    }
+    const flag = opt.long;
+    let values = Array.isArray(raw) ? raw : [raw];
+    if (typeof raw === 'object' && !Array.isArray(raw)) values = Object.entries(raw).map(([k, v]) => `${k}=${v}`); // "param": { "glow": 2 }
+    if (typeof raw === 'string' && LIST_KEYS.has(key)) values = raw.split(';').map((v) => v.trim()).filter(Boolean);
+    for (const v of values) {
+      const str = String(v).trim();
+      if (!opt.required && !opt.optional) {
+        if (v === true || TRUE.test(str)) args.push(flag); // plain switch, e.g. open
+      } else if (opt.optional && (v === true || YES.test(str))) {
+        args.push(flag); // e.g. "hook": true → --hook with its default
+      } else if (str !== '' && v !== false) {
+        args.push(flag, PATH_KEYS.has(key) ? path.resolve(dir, str) : str);
+      }
+    }
+  }
+  return args;
+}
+
+// Minimal CSV: header row, commas, "quoted, fields" with "" for a quote,
+// blank lines and lines starting with # skipped.
+function parseCsv(text) {
+  const records = [];
+  let field = '', record = [], quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; } else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { record.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      record.push(field);
+      records.push(record);
+      field = '';
+      record = [];
+    } else field += ch;
+  }
+  if (field || record.length) records.push([...record, field]);
+  const rows = records.filter((r) => r.some((f) => f.trim()) && !r[0].trim().startsWith('#'));
+  const [header, ...body] = rows;
+  const keys = (header ?? []).map((h) => h.trim());
+  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, r[i]?.trim()]).filter(([k, v]) => k && v !== undefined && v !== '')));
 }
 
 // Which style each section gets, and the scene changes between them.
@@ -277,6 +536,14 @@ function listStyles() {
     for (const [k, v] of Object.entries(s.params ?? {})) console.log(`      --param ${k}=${v}`);
   }
   console.log('');
+}
+
+function listFx() {
+  console.log('\n  Post-effects  (--fx name or name=amount, comma-separated; 1 = normal strength)\n');
+  for (const [k, v] of Object.entries(effects)) console.log(`      ${k.padEnd(10)} ${v}`);
+  console.log(`\n  Transitions  (--transition, or transition= in a --scene)\n\n      ${transitions.join(', ')}`);
+  console.log(`\n  Signals for -P expressions, e.g. -P glow=1+bass*2\n\n      ${Object.keys(signals).join(', ')}`);
+  console.log('      functions: sin cos abs min max floor round sqrt pow clamp, and pi\n');
 }
 
 function listPalettes() {

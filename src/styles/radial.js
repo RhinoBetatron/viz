@@ -14,14 +14,16 @@ export default {
     ring: 1,         // outer ring that follows loudness
   },
 
-  draw(ctx, frame, { cx, cy, width, height, u, palette, params, cover }) {
+  draw(ctx, frame, { cx, cy, width, height, u, fps, palette, params, cover }) {
     const p = params;
     const size = Math.min(width, height);
     const count = Math.round(p.bars);
     const values = sampleSpectrum(frame.spectrum, count);
     const r = size * p.radius * (1 + 0.06 * frame.pulse);
     const len = size * p.length;
-    const rotation = frame.time * p.spin * Math.PI * 2;
+    // Added up per frame (not time × spin) so an audio-driven spin stays smooth.
+    const rotation = (this.turn ?? 0) * Math.PI * 2;
+    this.turn = (this.turn ?? 0) + p.spin / fps;
     const step = Math.PI / count;
 
     ctx.translate(cx, cy);

@@ -208,6 +208,28 @@ viz TRACK.wav --auto reactor,industrial --open
 viz TRACK.wav --auto --start 1:00 -d 30 --open
 ```
 
+### Effects, loops & finding a look
+
+```bash
+# Straight onto the drop, glowing, looping seamlessly for Instagram
+viz TRACK.wav --hook -s occult --fx bloom --loop --open
+
+# Worn VHS tape over the machine room, shaking on the kicks
+viz TRACK.wav --hook -s industrial --fx vhs,shake --open
+
+# Glow that flares on every kick, rotation that follows the bass
+viz TRACK.wav -s radial -c COVER.jpg -P "glow=1+pulse*3" -P "spin=bass*0.25" --open
+
+# Symbol changes every bar, steady through breakdowns
+viz TRACK.wav -s occult -P symbol=cycle -P on=bar -P cycle=2 --open
+
+# Cut to the drop style exactly on a kick, with a zoom punch later
+viz TRACK.wav --start 0:50 -d 25 -s vines --scene +5=occult,transition=kick --scene +15=reactor,transition=zoom --open
+
+# Surprise me (prints the command so you can keep it)
+viz TRACK.wav --random --hook --preview --open
+```
+
 ### Batch & long-form
 
 ```bash
@@ -220,6 +242,12 @@ viz TRACK.wav -d all -s vines -P pregrow=0 \
 
 # Every track in a folder, same look (run from the folder's parent)
 viz FOLDER -s radial -p sunset -d 15
+
+# Every track in a folder, each starting on its own drop
+viz FOLDER --hook -s occult --loop
+
+# A release campaign: one row per video in a CSV or JSON file
+viz CAMPAIGN.csv
 
 # Full track for YouTube, black & white, wave → industrial halfway (change 2:00)
 viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
@@ -247,25 +275,35 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `-t, --title <text>` | Big title text | |
 | `--subtitle <text>` | Smaller spaced-out text under the title | |
 | `--font <family>` | Font for the title and subtitle (any installed font) | Helvetica Neue |
-| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below | |
+| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below. The value can follow the music: `-P "glow=1+pulse*3"`, see [audio-driven settings](#audio-driven-settings--p-keyexpression) | |
 | `--scene <time=style…>` | Switch to another style at a point in the track (repeatable), see [Scenes](#scenes-blending-between-styles) | |
-| `--blend <sec>` | How long scene transitions take | `2` (`0.8` for flash) |
+| `--blend <sec>` | How long scene transitions take | `2` (`0.8` for flash and zoom, `0.6` for glitch, `1.2` for wipe) |
 | `--analyze` | Find the track's sections (intro, drop, breakdown, build, outro) and print a `--scene` command for them. Doesn't render. See [Automatic sections](#automatic-sections---analyze----auto) | |
 | `--auto [calm,drop[,build]]` | Render with styles switching at the detected sections. Whole track unless `-d`/`--end` is given | `vines,occult` |
-| `--transition <type>` | `fade` (crossfade), `black` (dip to black), `flash` (white flash cut), `cut` | `fade` |
+| `--hook [lead]` | Start the clip `lead` seconds before the biggest drop, see [--hook](#--hook-start-on-the-drop) | off (`2` when given) |
+| `--drums <file>` | Drum stem: kicks and hits come from it, everything else from the track, see [--drums](#--drums-drive-the-hits-from-a-stem) | |
+| `--fx <list>` | Post-effects with optional strengths: `bloom` `chroma` `vhs` `scanlines` `vignette` `shake`, e.g. `bloom,shake=2`, see [--fx](#post-effects---fx) | |
+| `--loop [sec]` | Seamless loop: crossfade the end into the start, length rounded to whole bars, see [--loop](#seamless-loops---loop) | off (`1.5` when given) |
+| `--transition <type>` | `fade`, `black`, `flash`, `cut`, `wipe`, `zoom`, `glitch`, `kick`, see [transitions](#scenes-blending-between-styles) | `fade` |
+| `--snap <unit>` | Move `--scene` times onto the nearest `bar` (or `beat`) of the [beat grid](#the-beat-grid) | |
 | `--fps <n>` | Frame rate (`60` = smoother, takes twice as long) | `30` |
 | `--crf <n>` | Quality: 16 = near-lossless, 23 = smaller file | `18` |
-| `--seed <n>` | Changes the randomness in `particles` | `1` |
+| `--seed <n>` | Changes the randomness in styles that use it (`particles`, floating symbols…) | `1` |
 | `--no-fade` | No fade in/out on picture and sound | fades on |
 | `--preview` | Quick half-res 5s draft (`*_preview.mp4`) to check the look. With `--scene` it keeps the full length so you can see the changes | |
 | `--gpu` | Render on the GPU (try it if heavy styles feel slow) | off |
 | `--open` | Open the video when it's done | |
+| `--watch` | Keep running and re-render a preview whenever a file in `src/`, the track or the cover changes | |
+| `--random [seed]` | Random style, palette, settings and effects for whatever you didn't set. Prints the command to get it again | |
 | `--list-styles` | Show every style and its `--param` settings | |
 | `--list-palettes` | Show the palettes as colour swatches | |
+| `--list-fx` | Show the effects, transitions and the signals `-P` expressions can use | |
 | `-h, --help` | Help | |
 
 **Folder input** renders every audio file in the folder with the same settings:
 `viz ./teasers -s wave -p ice`
+
+**Batch file input** (`.csv` / `.json`) renders one video per row, each with its own settings. See [batch files](#batch-files-a-whole-release-campaign).
 
 ---
 
@@ -340,7 +378,8 @@ A glowing symbol in the centre of a rotating magic circle. The 24 Elder Futhark 
 | param | default | |
 |---|---|---|
 | `symbol` | pentagram | `pentagram` `inverted` `hexagram` `heptagram` `octagram` `eye` `leviathan` `triplemoon` `cycle` |
-| `cycle` | 8 | With `symbol=cycle`: kicks between symbol changes |
+| `cycle` | 8 | With `symbol=cycle`: how many kicks (or beats/bars, see `on`) between symbol changes |
+| `on` | kick | What `cycle` counts: `kick`, `beat` or `bar`. Beats and bars follow the [beat grid](#the-beat-grid), so it keeps changing through breakdowns |
 | `scale` | 1 | Size of the whole circle |
 | `spin` | 0.03 | Rotation speed (turns per second) |
 | `runes` | 1 | Rune ring, 0 = hide |
@@ -667,11 +706,15 @@ viz track.wav --start 0:45 -d 30 -s wave --scene 1:05=industrial
 | `black` | Old style fades to black, new one fades in | Section changes, breakdowns |
 | `flash` | Hard cut with a white flash that decays (0.8s) | Drops |
 | `cut` | Instant switch | Hard edits on a beat |
+| `kick` | Instant switch on the first kick at or after the scene time (waits up to a bar) | Landing exactly on the drop without finding the frame |
+| `zoom` | Hard cut that lands zoomed in with a flash and springs back (0.8s) | Drops, punchy edits |
+| `wipe` | A slanted, glowing edge sweeps the new style in from the left (1.2s) | Verse → chorus, section changes |
+| `glitch` | Torn, shifted slices of both styles, settling on the new one (0.6s) | Drops, hard genre switches |
 
 **How it works:**
-- A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash` or `cut`.
+- A transition **starts** at the scene time and lasts `--blend` seconds. For a crossfade to be fully in *at* the drop, set the scene a little earlier. To hit exactly on the drop, use `flash`, `zoom`, `cut` or `kick`. `--snap bar` moves hand-typed times onto the nearest bar line.
 - `-p` and `-P` apply to every scene unless the scene sets its own. Without `-p`, each style uses its own default palette (see [Style families](#style-families)).
-- `-g`, `--grain`, `--cover`, `--title` and fades apply to the whole video.
+- `-g`, `--grain`, `--fx`, `--cover`, `--title` and fades apply to the whole video.
 - Each scene keeps its own state, so the gears keep their position, and the same style can come back later.
 - The default filename lists the styles: `track_wave-industrial-occult.mp4`.
 
@@ -733,6 +776,168 @@ viz track.wav -d all -s vines \
 - With `--start`/`-d`, `--auto` only uses the changes inside that window, and opens on the style for whatever section the clip starts in.
 - It works best on music with a clear beat and contrast between sections (most electronic music). Ambient tracks or tracks that stay at one level may come out as one long section. Then use `--scene` by hand.
 - Works on folders too: `viz FOLDER --auto` analyses each track separately.
+
+---
+
+## Hook, beat grid and drum stems
+
+### `--hook`: start on the drop
+
+Finds the biggest drop in the track and starts the clip just before it, so the drop lands in the first seconds of the Reel. You don't need to look up the time.
+
+```bash
+viz track.wav --hook                 # starts 2s before the biggest drop
+viz track.wav --hook 4 -d 20         # 4s before it, 20s long
+viz ./teasers --hook -s radial       # each track in the folder gets its own drop
+```
+
+It prints what it picked (`Hook: drop at 0:55.8 → clip starts at 0:53.8`), so you can switch to `--start` if you want to adjust it. It prefers the biggest jump in energy and leans slightly towards the first drop, which is usually the hook. Leave out `--start` / `--end` when using it. `+12`-style scene times are counted from the start it picks.
+
+### The beat grid
+
+Every render finds the track's tempo and bar lines, from the whole track, so a clip lines up with the same grid as `--analyze`. The tempo finder checks how the beat repeats over whole bars, so breakbeat tracks come out right: drum & bass reads as 172, not 115 (2/3 of it) or 86 (half-time). The render prints the BPM it used. That grid powers:
+
+- **`--snap bar`** (or `beat`): moves every `--scene` time onto the nearest bar line, so a hand-typed `1:05` lands exactly on the downbeat.
+- **The `kick` transition**: waits for the first kick at or after the scene time (up to a bar), then cuts on it.
+- **`--loop`**: rounds the clip to whole bars.
+- **`occult -P on=bar`**: the `symbol=cycle` counter steps on bars or beats instead of detected kicks, so it keeps time through breakdowns with no kick.
+- **`beat` / `bar` in `-P` expressions** (below), and new `frame` fields for style authors.
+
+Which beat is the *downbeat* (bar line) is a best guess, based on where new sounds and energy jumps tend to come in. On most electronic music it's right.
+
+### `--drums`: drive the hits from a stem
+
+```bash
+viz track.wav --drums track_drums.wav -s particles
+```
+
+With a busy mix (bass and synths hitting with the drums), kick and hit detection can fire too often. Export the drum stem from your DAW, the same length and start as the mix, and give it to `--drums`. Kicks, hits and the kick `pulse` then come from the stem, and everything else (spectrum, bands, loudness, waveform) comes from the full mix. The beat grid still comes from the full mix.
+
+---
+
+## Audio-driven settings: `-P key=expression`
+
+Any number setting can follow the music. Write an expression instead of a number:
+
+```bash
+viz track.wav -s radial -P "spin=bass*0.3"           # spins when the bass hits
+viz track.wav -s occult -P "glow=1+pulse*3"           # flares on every kick
+viz track.wav -s bars   -P "bars=40+high*40"          # more bars when the hats are busy
+viz track.wav -s aurora -P "height=0.7+bar*0.6"        # curtains rise through each bar
+viz track.wav -s wave   -P "amp=0.3+0.2*sin(time*2)"  # slow breathing
+```
+
+| signal | |
+|---|---|
+| `bass`, `mid`, `high` | Smoothed band energy, 0–1 |
+| `rms` | Loudness, 0–1 |
+| `pulse` | 1 on each kick, decaying after: the punchiest one |
+| `kick`, `onset` | The hit's strength, only on the frame it happens (0 otherwise) |
+| `beat`, `bar` | 0 → 1 through each beat / bar of the [beat grid](#the-beat-grid) |
+| `time`, `progress` | Seconds into the clip, 0 → 1 through the clip |
+
+Operators `+ - * / ^ ( )` and the functions `sin cos abs min max floor round sqrt pow clamp`, plus `pi`. Quote the whole `-P` value in the shell. Expressions work in `--scene` settings too (`--scene 1:05=occult,glow=1+pulse*4`). `viz --list-fx` lists them all.
+
+- A word that isn't a signal (`symbol=eye`, `on=bar`) stays a word. A typo like `glow=1+bas*2` gets an error before anything renders.
+- Settings that are only read once at the start (counts like `floaters`, `ash`, `curtains` in some styles) take the value from the first frame.
+- `spin` in `radial` and `occult` adds up frame by frame, so a spin driven by the music speeds up and slows down smoothly. Some other speed settings (`speed` in `hands`, `shadows`, `aurora`) jump when modulated, so drive sizes, glows and counts there instead.
+
+---
+
+## Post-effects: `--fx`
+
+Effects that go on top of any style, scene chain or palette. All of them react to the music. List them comma-separated, each with an optional strength (1 = normal):
+
+```bash
+viz track.wav -s occult --fx bloom
+viz track.wav -s industrial --fx shake,chroma=2
+viz track.wav -s wave -p vapor --fx vhs,scanlines --grain 8
+viz track.wav -s radial --fx bloom=0.6,vignette=1.5
+```
+
+| effect | what it does |
+|---|---|
+| `bloom` | Glow bleeding out of the bright parts, swelling on the kick |
+| `chroma` | Lens-style colour fringing towards the edges, wider on the kick |
+| `vhs` | Worn tape: colour bleed, a tracking band rolling down, torn lines on hard hits, faint scanlines |
+| `scanlines` | CRT scanlines with a slow refresh bar |
+| `vignette` | Dark corners over the whole picture (the background already has a light one) |
+| `shake` | Camera shake on the kicks, harder when the track is loud. The picture zooms in just enough that the edges never show |
+
+- They apply to the whole video, under the title text and before `--ascii` (so bloom and shake carry through into ASCII mode). `--grain` and `-g` go on last.
+- Everything stays repeatable: the same command renders the same video.
+- `bloom` and `chroma` cost the most. Use `--preview` while picking amounts.
+
+---
+
+## Seamless loops: `--loop`
+
+Instagram replays Reels on a loop. `--loop` crossfades the end of the clip back into its start, picture and sound, so the replay has no visible or audible seam.
+
+```bash
+viz track.wav --hook -d 15 -s occult --loop          # 1.5s crossfade
+viz track.wav --start 1:00 -d 8 -s vines --loop 3    # longer, softer join
+```
+
+- The length is rounded to **whole bars** of the beat grid, so the beat carries on in time across the join. The result line says how many (`8.4s clip (loops on 6 bars)`).
+- It renders `--loop` seconds past the end and blends them over the start, so the track needs that much audio after the clip.
+- Fades are switched off (a loop has no start or end), and the filename gets `_loop`.
+- It renders in two passes: frames to a near-lossless temp file, then the join. That makes it a little slower.
+
+---
+
+## Workflow: `--watch`, `--random` and batch files
+
+### `--watch`: re-render on save
+
+```bash
+viz track.wav -s mystyle --watch --open
+```
+
+Renders a preview, then waits. Each time you save a file in `src/` (a style, `sea.js`, …), the track, the cover or the drum stem, it renders again in a fresh process, so your edits are picked up. With `--open`, it closes the old version in QuickTime (which wouldn't notice the file changed) and opens the new one. Saving again mid-render restarts it. `--watch` always renders with `--preview`. Stop with ctrl+c.
+
+### `--random`: find new looks
+
+```bash
+viz track.wav --random --hook --preview --open    # a random style, palette, settings and effects
+viz track.wav -s kraken --random --preview        # keep the style, randomise the rest
+viz track.wav --random 4821                       # the same random look again
+```
+
+Anything you set yourself stays as it is. The rest is picked at random: style, palette (half the time the style's own), about half the number settings (between half and double their default), sometimes effects and grain. It prints the full command for the look, so you can render it properly or tweak it. The filename gets `_r<seed>`.
+
+### Batch files: a whole release campaign
+
+Give viz a `.csv` or `.json` file instead of a track. Each row is one video, and the columns are option names.
+
+```csv
+input,start,style,palette,title,subtitle,param,fx
+single.wav,1:05,radial,sunset,NEW SINGLE,OUT FRIDAY,,bloom
+b-side.wav,,occult,,"LIVE, AT LAST",,symbol=eye;glow=1+pulse*3,vhs
+# lines starting with # are skipped
+remix.wav,0:48,vines,verdant,REMIX,,,
+```
+
+```json
+{
+  "defaults": { "duration": 20, "format": "feed" },
+  "tracks": [
+    { "input": "single.wav", "hook": true, "style": "radial", "title": "NEW SINGLE" },
+    { "input": "b-side.wav", "start": "1:12", "style": "occult", "param": { "symbol": "eye" },
+      "scene": ["+8=industrial,transition=kick"], "loop": 2 }
+  ]
+}
+```
+
+```bash
+viz campaign.csv              # every row
+viz campaign.csv --preview    # options given here apply to every row; a row's own values win
+```
+
+- Columns use the long option names (`style`, `start`, `duration`, `title`, `format`, `cover`, `fx`, `hook`, `loop`, `open`, …). An empty cell means "not set".
+- Paths (`input`, `cover`, `output`, `drums`) are relative to the batch file.
+- In a CSV, separate several `param` or `scene` values with `;`. For switches, `yes`/`no` work (`fade` = `no` gives `--no-fade`).
+- A row that fails doesn't stop the rest. The summary at the end lists any failures.
 
 ---
 
@@ -885,6 +1090,18 @@ viz ./teasers -s radial -p sunset -d 15
 
 # Full track for YouTube
 viz track.wav -f landscape -d all -s bars
+
+# Teaser that starts on the drop and loops cleanly
+viz track.wav --hook -d 15 -s radial -c art.jpg --fx bloom --loop
+
+# Retro tape look
+viz track.wav -s wave -p vapor --fx vhs --grain 8
+
+# Busy mix? Take the hits from the drum stem
+viz track.wav --drums drums.wav -s particles -p ember
+
+# Work on a style with a live preview
+viz track.wav -s mystyle --watch --open
 ```
 
 ---
@@ -893,7 +1110,8 @@ viz track.wav -f landscape -d all -s bars
 
 - **Reels / Stories:** `-f reel` (default). Keep text and visuals out of the bottom ~25%, where Instagram puts captions and buttons. The layout already handles this.
 - **Feed post:** `-f feed` (4:5) takes up the most room in the feed. Use `-f square` for a tidy grid.
-- **Length:** 15–30s works best for teasers. Start just before the hook or drop so it lands within the first 3 seconds.
+- **Length:** 15–30s works best for teasers. Start just before the hook or drop so it lands within the first 3 seconds (`--hook` does this).
+- **Loops:** Reels replay automatically. `--loop` makes the replay seamless, so people watch it twice without noticing.
 - Output is H.264 + AAC 320k, 30fps, `yuv420p`, BT.709, faststart. That's what Instagram expects, so it isn't heavily re-compressed.
 - AirDrop the MP4 to your phone and upload from there.
 
@@ -935,11 +1153,18 @@ export default {
 | `pulse` | Jumps to 1 on each kick, then decays. Use it for punch |
 | `onset` / `onsetStrength` | `true` on any transient |
 | `kick` / `kickStrength` | `true` on bass hits |
+| `beat` / `downbeat` | `true` on the frame nearest a beat / the first beat of a bar ([beat grid](#the-beat-grid)) |
+| `beatPhase` / `barPhase` | 0 → 1 through the current beat / bar |
+| `beatIndex` / `bar` | Beat and bar number in the track |
 | `time`, `progress`, `index` | Seconds into the clip, 0–1 through the clip, frame number |
+
+Without a steady beat, the beat fields stay `false` / `0`. `env.analysis.bpm` and `env.analysis.grid` (`{ bpm, period, offset }` in seconds) hold the tempo.
 
 **`env`**: `width`, `height`, `cx`/`cy` (visual centre, already safe for Reels), `u` (1 unit = 1px at 1080p, so multiply sizes by it), `palette` (`bg`, `colors`, `accent`, `text`), `params`, `cover` (image or null), `random()` (seeded), `fps`, `duration`, `createCanvas(w, h)`.
 
 Vector symbols (runes, alchemical sigils, star polygons, `addGlyph`) are in `src/glyphs.js`. Helpers in `src/util.js`: `sampleSpectrum`, `sampleWaveform`, `drawCover`, `rng`, `lerp`, `clamp`, `flatten`. Colour helpers in `src/palettes.js`: `rgba(hex, alpha)`, `mix(a, b, t)`, `rampAt(colors, t)`. For a style set at sea, `src/sea.js` has the waveform sea (`new Sea(env, {size, waterY})`, then `update`, `drawBehind` / `drawFront`) plus stars, moon, fog, rain and lightning; `src/underwater.js` has the underwater pieces.
+
+**Settings that follow the music:** `-P` values can be expressions, re-evaluated every frame into `env.params` before `draw`. If a setting is a speed, add it up per frame (`this.angle += p.spin / fps`) rather than multiplying by `frame.time`, so a modulated speed stays smooth.
 
 > **Performance gotchas:** If you draw on an offscreen canvas across frames (trails, feedback), call `flatten(canvas)` each frame, or rendering gets slower every frame. Also reset `ctx.shadowBlur = 0` before big fills, because a shadow on a full-screen rect is very expensive.
 
@@ -950,10 +1175,13 @@ Vector symbols (runes, alchemical sigils, star polygons, `addGlyph`) are in `src
 ## Project layout
 
 ```
-bin/viz.js          CLI: options, batch mode, progress bar
+bin/viz.js          CLI: options, folders, batch files, --watch, --random, --hook, progress bar
 src/audio.js        ffmpeg decode → FFT, bands, loudness, onset/kick detection per frame
-src/structure.js    section finder for --analyze / --auto (tempo, novelty, energy labels)
-src/render.js       frame loop: background → style → text → fades → ffmpeg
+src/structure.js    section finder for --analyze / --auto / --hook (novelty, energy labels)
+src/beats.js        tempo, beat grid, downbeats, --snap
+src/render.js       frame loop: background → style → transitions → fx → text → fades → ffmpeg (+ --loop join)
+src/fx.js           --fx post-effects
+src/modulate.js     -P expressions (glow=1+pulse*3)
 src/palettes.js     colour palettes + auto palette from cover art
 src/util.js         helpers for styles
 src/glyphs.js       runes, occult/alchemical symbols as vector paths
@@ -970,5 +1198,9 @@ src/styles/*.js     one file per style
 | `viz: command not found` | Run `npm link` in this folder, or use `node bin/viz.js …` |
 | `No audio found … at --start` | The start time is past the end of the track |
 | Visuals feel sluggish or jumpy | Try `--fps 60`, or tweak the style's `glow`/`trail`/`drag` params |
-| Render is slow | Use `--preview` while experimenting. Try `--gpu` |
+| Render is slow | Use `--preview` while experimenting. Frames are already rasterised in parallel; `--gpu` can help further on heavy styles. `--loop` and `bloom`/`chroma` add time |
+| BPM is half or double what it should be | The grid had to choose between half-time and full-time. Only bar-based things are affected: halve or double `cycle` with `-P on=bar`; `--loop` still lands on bar lines |
+| `--hook` picks the wrong drop | Run `--analyze` to see the sections, then use `--start` with the time you want |
+| `-P` value gives "doesn't use any of" | It looks like an expression but has no signal in it: check the spelling (`bass`, not `bas`) |
+| Kicks fire on bass notes too | Give it the drum stem: `--drums drums.wav` |
 | Title is cut off or the wrong font | `--font "Futura"` (any font installed on your Mac) |
