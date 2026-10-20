@@ -11,7 +11,8 @@ export default {
   palette: 'blood', // used when no -p is given
   params: {
     symbol: 'pentagram', // pentagram inverted hexagram heptagram octagram eye leviathan triplemoon cycle
-    cycle: 8,            // with symbol=cycle: kicks between symbol changes
+    cycle: 8,            // with symbol=cycle: how many kicks (or beats / bars, see `on`) between symbol changes
+    on: 'kick',          // what symbol=cycle counts: kick, beat (steady through breakdowns) or bar
     scale: 1,            // overall size of the magic circle
     spin: 0.03,          // rotation speed in turns per second
     runes: 1,            // rune ring (0 to hide)
@@ -25,6 +26,7 @@ export default {
   setup(ctx, env) {
     const { width, height, u, random, params } = env;
     this.kicks = 0;
+    this.turn = 0;
     this.floaters = Array.from({ length: Math.round(params.floaters) }, () => ({
       glyph: sigils[Math.floor(random() * sigils.length)],
       x: random() * width,
@@ -70,7 +72,9 @@ export default {
 
     const size = Math.min(width, height);
     const R = size * 0.42 * p.scale * (1 + 0.02 * frame.pulse);
-    const turn = frame.time * p.spin * Math.PI * 2;
+    // Added up per frame (not time × spin) so an audio-driven spin stays smooth.
+    const turn = this.turn * Math.PI * 2;
+    this.turn += p.spin / env.fps;
     ctx.translate(cx, cy);
     ctx.globalAlpha = flicker;
 
@@ -121,7 +125,7 @@ export default {
     }
 
     // Centre symbol.
-    if (frame.kick) this.kicks++;
+    if (p.on === 'bar' ? frame.downbeat : p.on === 'beat' ? frame.beat : frame.kick) this.kicks++;
     const name = p.symbol === 'cycle' ? CYCLE[Math.floor(this.kicks / Math.max(1, p.cycle)) % CYCLE.length] : p.symbol;
     const glyph = centerpieces[name] ?? centerpieces.pentagram;
     const symbolSize = R * 0.56 * (1 + 0.07 * frame.pulse);
