@@ -16,6 +16,7 @@ export const palettes = {
   steel:  { bg: ['#07090b', '#121820'], colors: ['#46525c', '#4fc3ff', '#e6f6ff'], accent: '#4fc3ff', text: '#dfe8ee' },
   spectral: { bg: ['#020608', '#071a1f'], colors: ['#0e3a42', '#2fa39a', '#a8fff0'], accent: '#7dffe3', text: '#e2fff9' },
   verdant: { bg: ['#010a04', '#03190b'], colors: ['#06451b', '#0b8a31', '#16d24f', '#8dff4a'], accent: '#22ff66', text: '#e2ffe6' },
+  savanna: { bg: ['#120818', '#3b1424'], colors: ['#6e2a1c', '#e0742a', '#ffcf6e'], accent: '#ffb347', text: '#fff1dc' },
 };
 
 export function hexToRgb(hex) {

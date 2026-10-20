@@ -117,6 +117,9 @@ viz TRACK.wav -s shadows -g -d 20 --open
 # Reactor: control rods slamming in as the core flares
 viz TRACK.wav -s reactor -d 20 --open
 
+# Savanna sunset: a rhino trotting on the beat and charging on every kick
+viz TRACK.wav -s rhino -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -259,14 +262,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -322,6 +325,7 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `verdant` | `vines` `marsh` | `--auto marsh,vines` |
 | `gloom` (greyscale) | `hands` `gallows` `shadows` | `--auto gallows,hands` or `--auto shadows,hands` |
 | `hazard` | `industrial` `reactor` | `--auto reactor,industrial` |
+| `savanna` (dusk orange) | `rhino` | On its own, or with warm palettes: `--auto particles/savanna,rhino` |
 
 The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
 
@@ -659,6 +663,25 @@ The companion to `industrial`, in the same hazard amber. A reactor core in a cut
 | `geiger` | 1 | Radiation specks crackling with the highs, 0 = off |
 | `stripes` | 1 | Hazard stripe bands top and bottom |
 | `hud` | 1 | Monospace readouts |
+
+### `rhino`: rhino at sunset
+
+<img src="docs/gifs/rhino.gif" width="260" alt="rhino style">
+
+A rhino in profile, silhouetted against a huge setting sun on the savanna, rim-lit along its back and horns. It trots in time with the [beat grid](#the-beat-grid), diagonal legs swinging in turn, with a longer stride when the track is louder. On every kick it charges forward, drops its head into a headbutt and snorts, kicking up dust from its hooves. Its horns flare and its eye glows with the kick. Behind it, the sun's rays play the spectrum (bass at the top) and cloud bands drift across the sun's lower half. There's a hazy flat-topped mountain, acacia trees on the horizon, and a flock of birds that wheels overhead and scatters on hard hits. In front, grass grows up to the camera, each blade rising with its slice of the spectrum. Uses the `savanna` palette unless you pass `-p` (try `-p blood`, `-p ember` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `size` | 1 | Size of the rhino |
+| `trot` | 1 | How much it trots in time with the beat, 0 = stands still |
+| `charge` | 1 | How hard it lunges and headbutts on kicks, 0 = calm |
+| `dust` | 1 | Dust from the hooves and snorts, 0 = none |
+| `sun` | 1 | Size of the sun, 0 = no sun |
+| `rays` | 1 | Spectrum rays around the sun, 0 = off |
+| `grass` | 1 | Foreground grass swaying with the music, 0 = none |
+| `trees` | 3 | Acacia trees on the horizon, 0–6 |
+| `birds` | 9 | Birds circling overhead, 0 = none |
+| `glow` | 1 | Rim light, horn and eye glow |
 
 ---
 
@@ -1101,6 +1124,14 @@ viz track.wav -s reactor                                   # amber reactor core
 viz track.wav -s reactor -p steel                          # cold blue reactor
 viz track.wav -s reactor -p acid                           # green, radioactive
 viz track.wav -s reactor -P slam=2 -P flare=1.5            # violent scrams
+
+# Rhino at sunset
+viz track.wav -s rhino                                     # savanna dusk, charging on the kicks
+viz track.wav -s rhino -p blood -P charge=2                # blood-red sun, harder headbutts
+viz track.wav -s rhino -g --grain 12                       # black & white documentary
+viz track.wav -s rhino --ascii 12                          # the rhino cut out of ASCII light
+viz track.wav -s rhino -f landscape -P trees=6             # wide savanna for YouTube
+viz track.wav -s rhino -P "sun=1+0.2*sine(4)" --fx bloom   # the sun swells every 4 bars
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art
