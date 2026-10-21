@@ -2,7 +2,7 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Music-aware:** `--hook` starts on the drop, a beat grid keeps things on the bar, settings can follow the audio (`-P glow=1+pulse*3`), and `--loop` makes Reels that loop seamlessly.
@@ -11,7 +11,7 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 
 ## Gallery
 
-All rendered from the same track, square format. The first six rows are each style at default settings, then `rhino` and `temple` three ways each. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode. [More looks](#more-looks) below shows palettes, effects, transitions and music-driven settings.
+All rendered from the same track, square format. The first six rows are each style at default settings, then `rhino` and `temple` three ways each, then the Greek myths: `medusa`, `labyrinth`, `hydra` and `pegasus`. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode. [More looks](#more-looks) below shows palettes, effects, transitions and music-driven settings.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
@@ -30,6 +30,10 @@ All rendered from the same track, square format. The first six rows are each sty
 | `-s rhino` | `-s rhino -p blood -P charge=2` | `-s rhino --ascii 12` |
 | <img src="docs/gifs/temple.gif" width="260" alt="temple"> | <img src="docs/gifs/temple_ruin.gif" width="260" alt="temple_ruin"> | <img src="docs/gifs/temple_ascii.gif" width="260" alt="temple_ascii"> |
 | `-s temple` | `-s temple -P ruin=0.7 -p blood` | `-s temple --ascii 12` |
+| <img src="docs/gifs/medusa.gif" width="260" alt="medusa"> | <img src="docs/gifs/labyrinth.gif" width="260" alt="labyrinth"> | <img src="docs/gifs/hydra.gif" width="260" alt="hydra"> |
+| `-s medusa` | `-s labyrinth` | `-s hydra` |
+| <img src="docs/gifs/pegasus.gif" width="260" alt="pegasus"> | <img src="docs/gifs/labyrinth_aegean.gif" width="260" alt="labyrinth_aegean"> | <img src="docs/gifs/hydra_blood.gif" width="260" alt="hydra_blood"> |
+| `-s pegasus` | `-s labyrinth -p aegean -P size=0.7` | `-s hydra -p blood -P heads=7` |
 | <img src="docs/gifs/shadows.gif" width="260" alt="shadows"> | <img src="docs/gifs/shadows_grain.gif" width="260" alt="shadows_grain"> | <img src="docs/gifs/shadows_blood.gif" width="260" alt="shadows_blood"> |
 | `-s shadows` | `-s shadows -g` | `-s shadows -p blood -P gloom=2` |
 | <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse_storm"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> | <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands_rotate"> |
@@ -303,6 +307,10 @@ viz TRACK.wav -s rhino -d 20 --open
 # Greek temple: columns splitting apart on every kick, light pouring out
 viz TRACK.wav -s temple -d 20 --open
 
+# Greek myths: the temple, then Medusa, the labyrinth, the hydra and Pegasus, 8 seconds each
+viz TRACK.wav --start 0:40 -d 40 -s temple --scene +8=medusa,transition=kick --scene +16=labyrinth,transition=zoom \
+  --scene +24=hydra,transition=kick --scene +32=pegasus,transition=flash --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -445,14 +453,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `aegean` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`, `aegean` for `temple`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `aegean` `gorgon` `minoan` `lerna` `olympus` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`, `aegean` for `temple`, `gorgon` for `medusa`, `minoan` for `labyrinth`, `lerna` for `hydra`, `olympus` for `pegasus`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -510,6 +518,12 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `hazard` | `industrial` `reactor` | `--auto reactor,industrial` |
 | `savanna` (dusk orange) | `rhino` | On its own, or with warm palettes: `--auto particles/savanna,rhino` |
 | `aegean` (moonlit marble, firelight) | `temple` | On its own, or into its ruins: `--scene +30=temple,ruin=0.7,transition=kick` |
+| `gorgon` (venom green) | `medusa` | |
+| `minoan` (torchlit terracotta) | `labyrinth` | |
+| `lerna` (swamp violet, venom green) | `hydra` | |
+| `olympus` (dusk gold) | `pegasus` | |
+
+The Greek styles (`temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`) each bring their own palette and keep it when you chain them, so they tell one myth together: `--auto temple,hydra,labyrinth` (calm temple, the hydra on the drops, the labyrinth on the builds), or all five with `--scene`, as in the ready-made command above.
 
 The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
 
@@ -928,6 +942,74 @@ A Greek temple on a hilltop over a moonlit sea, cypresses either side. On every 
 | `moon` | 1 | Size of the moon, 0 = no moon |
 | `stars` | 1 | Stars, 0 = none |
 | `ruin` | 0 | 0 = intact, up to 1 = broken columns, fallen drums, no roof |
+
+### `medusa`: the gorgon on a bronze shield
+
+<img src="docs/gifs/medusa.gif" width="260" alt="medusa style">
+
+Medusa's face on a bronze shield, like a gorgoneion. Her snakes writhe with the mids, each one reaching further with its slice of the spectrum (bass at the crown, highs at the sides), and on every kick a few of them strike: they lunge straight out, jaws open, fangs bared, tongues flicking. Her brows knit on the kicks and her eyes glow. On the biggest hits her gaze flashes: her eyes flare, a ring of light races out across the frame, and any bird it passes turns to stone and tumbles out of the sky. The shield's rim ticks with the spectrum. Uses the `gorgon` palette unless you pass `-p` (try `-p blood`, `-p olympus` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `snakes` | 14 | Snakes in her hair, 4–24 |
+| `strike` | 1 | How many snakes strike on each kick and how far, 0 = none |
+| `sway` | 1 | How much the snakes writhe with the mids |
+| `gaze` | 1 | Her petrifying gaze on the biggest hits (more = more often), 0 = never |
+| `birds` | 8 | Birds flying past, waiting to be turned to stone, 0 = none |
+| `shield` | 1 | Size of the bronze shield behind her, 0 = none |
+| `glow` | 1 | Eye and gaze glow |
+
+### `labyrinth`: the minotaur's maze
+
+<img src="docs/gifs/labyrinth.gif" width="260" alt="labyrinth style">
+
+The labyrinth from above, a different maze for every `--seed`. Light runs through its corridors with the spectrum: each corridor lights with the band that matches how deep it is, bass at the centre and highs at the far dead ends, and every kick sends a wave of light flooding out from the centre along the passages. The minotaur roams the maze, faster when it's loud, and charges on the kicks, head down, eyes blazing, kicking up dust. Ariadne's thread runs glowing from the entrance through every turn to wherever the beast is now, shimmering with the waveform. Torches flicker on the walls with the highs. Uses the `minoan` palette unless you pass `-p` (try `-p aegean`, `-p steel` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `size` | 1 | Size of the corridors: bigger means fewer, wider ones |
+| `speed` | 1 | How fast the minotaur roams |
+| `charge` | 1 | How hard it charges on the kicks, 0 = steady |
+| `fill` | 1 | Light in the corridors with the spectrum, 0 = off |
+| `waves` | 1 | Light flooding out from the centre on kicks, 0 = off |
+| `thread` | 1 | Ariadne's thread from the entrance to the minotaur, 0 = none |
+| `torches` | 10 | Torches on the walls, 0 = none |
+| `glow` | 1 | Minotaur, thread and torch glow |
+
+### `hydra`: the hydra of Lerna
+
+<img src="docs/gifs/hydra.gif" width="260" alt="hydra style">
+
+The hydra rising out of a moonlit swamp, one head for each slice of the spectrum (bass in the middle, highs at the sides): each neck stretches up with its band and writhes with the mids. On every kick some heads lunge and snap, jaws gaping, spitting glowing venom that falls into the water, and the water ripples out from its body. On the biggest hits it grows two new heads, which rise out of its back into the widest gaps. In a long quiet stretch it sheds the extras one at a time, back to where it started, so a breakdown calms it and the next drop brings the heads back. Dead trees, mist and the moon reflected in the water around it. Uses the `lerna` palette unless you pass `-p` (try `-p blood`, `-p gorgon` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `heads` | 5 | Heads it starts with, 1–9 |
+| `max` | 11 | Most heads it can grow; set it to `heads` to stop it growing |
+| `snap` | 1 | How hard the heads lunge and snap on kicks, 0 = calm |
+| `venom` | 1 | Venom spat from the jaws, 0 = none |
+| `sway` | 1 | How much the necks writhe |
+| `size` | 1 | Size of the hydra |
+| `mist` | 1 | Swamp mist, 0 = clear |
+| `trees` | 1 | Dead trees on the banks, 0 = none |
+| `glow` | 1 | Eyes and venom glow |
+
+### `pegasus`: Pegasus over the clouds
+
+<img src="docs/gifs/pegasus.gif" width="260" alt="pegasus style">
+
+Pegasus flying over a sea of clouds towards Olympus at dusk, the gods' temple glowing on the summit. The wings beat in time with the [beat grid](#the-beat-grid), the downstroke landing on the beat (one wing beat every two beats by default), shedding golden dust from the wingtips, and the horse rises and dips with each stroke, mane and tail streaming. Zeus throws lightning out of the storm overhead on the kicks, branching bolts down into the clouds with a flash. The cloud tops swell with the spectrum and rush past faster when it's loud, with wind streaks flying by. Uses the `olympus` palette unless you pass `-p` (try `-p ember`, `-p ice` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `flap` | 0.5 | Wing beats per beat: 0.5 = one every two beats, 1 = every beat, 0 = gliding |
+| `size` | 1 | Size of the horse |
+| `lightning` | 1 | Zeus's bolts on the kicks, 0 = none |
+| `clouds` | 1 | How much the cloud tops rise with the spectrum |
+| `speed` | 1 | How fast the clouds rush past |
+| `sparkle` | 1 | Golden dust from the wings, 0 = none |
+| `mountain` | 1 | Size of Olympus in the distance, 0 = none |
+| `glow` | 1 | Glow on the horse, the bolts and the sparkle |
 
 ---
 
@@ -1391,6 +1473,28 @@ viz track.wav -s temple -g --grain 12                      # old marble photogra
 viz track.wav -s temple --ascii 12                         # the temple in ASCII
 viz track.wav -s temple -P split=2 --fx shake,bloom        # the temple shaking itself apart
 viz track.wav -s temple -P "light=0.5+1.5*saw(8)"             # the doorway brightening over 8 bars
+
+# Medusa
+viz track.wav -s medusa                                    # the gorgon, snakes striking on the kicks
+viz track.wav -s medusa -P snakes=22 -P strike=2           # a writhing mass of snakes
+viz track.wav -s medusa -P gaze=3 -P birds=20              # turning everything to stone
+viz track.wav -s medusa -g --grain 12                      # carved in stone
+
+# Labyrinth
+viz track.wav -s labyrinth                                 # torchlit maze, the minotaur charging on the kicks
+viz track.wav -s labyrinth -p aegean -P size=0.7           # a bigger maze in moonlit marble
+viz track.wav -s labyrinth -P speed=2 -P charge=2          # a frantic minotaur
+viz track.wav -s labyrinth -f reel -P waves=2              # tall maze, big floods of light
+
+# Hydra
+viz track.wav -s hydra                                     # five heads, two more on every big drop
+viz track.wav -s hydra -P heads=9 -P max=9                 # all nine heads from the start
+viz track.wav -s hydra -p blood -P snap=2                  # blood-red, vicious
+
+# Pegasus
+viz track.wav -s pegasus                                   # flying to Olympus, wings on the beat
+viz track.wav -s pegasus -P flap=1 -P lightning=2          # beating every beat in a lightning storm
+viz track.wav -s pegasus -p ember -P "flap=0.25+0.75*rms"  # wings beat harder when it's loud
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art

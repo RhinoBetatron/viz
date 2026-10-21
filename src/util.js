@@ -1,4 +1,5 @@
 // Small helpers shared by styles.
+import { Path2D } from 'skia-canvas';
 
 // Resample a spectrum to n values (linear interpolation).
 export function sampleSpectrum(spectrum, n) {
@@ -57,4 +58,23 @@ export function flatten(canvas) {
   const ctx = canvas.getContext('2d');
   ctx.putImageData(pixels, 0, 0);
   return ctx;
+}
+
+// A tapered body (snake, neck, tentacle) along `pts`, each { x, y, w } with
+// w the half-width there, as one closed path.
+export function ribbon(pts) {
+  const path = new Path2D();
+  const left = [], right = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+    const nx = -dy / l, ny = dx / l, w = pts[i].w;
+    left.push([pts[i].x + nx * w, pts[i].y + ny * w]);
+    right.push([pts[i].x - nx * w, pts[i].y - ny * w]);
+  }
+  path.moveTo(...left[0]);
+  for (const p of left.slice(1)) path.lineTo(...p);
+  for (const p of right.reverse()) path.lineTo(...p);
+  path.closePath();
+  return path;
 }

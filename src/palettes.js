@@ -18,6 +18,10 @@ export const palettes = {
   verdant: { bg: ['#010a04', '#03190b'], colors: ['#06451b', '#0b8a31', '#16d24f', '#8dff4a'], accent: '#22ff66', text: '#e2ffe6' },
   savanna: { bg: ['#120818', '#3b1424'], colors: ['#6e2a1c', '#e0742a', '#ffcf6e'], accent: '#ffb347', text: '#fff1dc' },
   aegean:  { bg: ['#040814', '#0f1c3a'], colors: ['#25314f', '#b9a989', '#f4e8cf'], accent: '#ffb347', text: '#f4ead6' },
+  gorgon:  { bg: ['#020906', '#0b1f16'], colors: ['#163a2a', '#4f9a63', '#cfe9b4'], accent: '#d4ff4f', text: '#eefbe4' },
+  minoan:  { bg: ['#070504', '#1a100a'], colors: ['#3b2416', '#b8582a', '#f0c070'], accent: '#ff3d2e', text: '#f6e6cc' },
+  lerna:   { bg: ['#05030a', '#150b24'], colors: ['#2a1640', '#6b3fa0', '#c9a8ff'], accent: '#7dff6a', text: '#efe6ff' },
+  olympus: { bg: ['#0c1030', '#33285a'], colors: ['#454a86', '#e3995a', '#ffe3ac'], accent: '#ffd36a', text: '#fff7ea' },
 };
 
 export function hexToRgb(hex) {
