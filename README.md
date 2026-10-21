@@ -2,7 +2,7 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Music-aware:** `--hook` starts on the drop, a beat grid keeps things on the bar, settings can follow the audio (`-P glow=1+pulse*3`), and `--loop` makes Reels that loop seamlessly.
@@ -11,7 +11,7 @@ A command-line tool that turns audio files into audio-reactive videos for Instag
 
 ## Gallery
 
-All rendered from the same track, square format. The first six rows are each style at default settings, then `rhino` three ways. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode. [More looks](#more-looks) below shows palettes, effects, transitions and music-driven settings.
+All rendered from the same track, square format. The first six rows are each style at default settings, then `rhino` and `temple` three ways each. The last three show some variations: `shadows` plain, with film grain and in blood red, the lighthouse in a storm, a scene change (vines flashing into occult right on the drop), the hands rotating, and ASCII mode. [More looks](#more-looks) below shows palettes, effects, transitions and music-driven settings.
 
 | <img src="docs/gifs/bars.gif" width="260" alt="bars"> | <img src="docs/gifs/radial.gif" width="260" alt="radial"> | <img src="docs/gifs/wave.gif" width="260" alt="wave"> |
 |:---:|:---:|:---:|
@@ -28,6 +28,8 @@ All rendered from the same track, square format. The first six rows are each sty
 | `-s marsh` | `-s gallows` | `-s reactor` |
 | <img src="docs/gifs/rhino.gif" width="260" alt="rhino"> | <img src="docs/gifs/rhino_blood.gif" width="260" alt="rhino_blood"> | <img src="docs/gifs/rhino_ascii.gif" width="260" alt="rhino_ascii"> |
 | `-s rhino` | `-s rhino -p blood -P charge=2` | `-s rhino --ascii 12` |
+| <img src="docs/gifs/temple.gif" width="260" alt="temple"> | <img src="docs/gifs/temple_ruin.gif" width="260" alt="temple_ruin"> | <img src="docs/gifs/temple_ascii.gif" width="260" alt="temple_ascii"> |
+| `-s temple` | `-s temple -P ruin=0.7 -p blood` | `-s temple --ascii 12` |
 | <img src="docs/gifs/shadows.gif" width="260" alt="shadows"> | <img src="docs/gifs/shadows_grain.gif" width="260" alt="shadows_grain"> | <img src="docs/gifs/shadows_blood.gif" width="260" alt="shadows_blood"> |
 | `-s shadows` | `-s shadows -g` | `-s shadows -p blood -P gloom=2` |
 | <img src="docs/gifs/lighthouse_storm.gif" width="260" alt="lighthouse_storm"> | <img src="docs/gifs/scene.gif" width="260" alt="scene"> | <img src="docs/gifs/hands_rotate.gif" width="260" alt="hands_rotate"> |
@@ -298,6 +300,9 @@ viz TRACK.wav -s reactor -d 20 --open
 # Savanna sunset: a rhino trotting on the beat and charging on every kick
 viz TRACK.wav -s rhino -d 20 --open
 
+# Greek temple: columns splitting apart on every kick, light pouring out
+viz TRACK.wav -s temple -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -440,14 +445,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `aegean` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`, `aegean` for `temple`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -504,6 +509,7 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `gloom` (greyscale) | `hands` `gallows` `shadows` | `--auto gallows,hands` or `--auto shadows,hands` |
 | `hazard` | `industrial` `reactor` | `--auto reactor,industrial` |
 | `savanna` (dusk orange) | `rhino` | On its own, or with warm palettes: `--auto particles/savanna,rhino` |
+| `aegean` (moonlit marble, firelight) | `temple` | On its own, or into its ruins: `--scene +30=temple,ruin=0.7,transition=kick` |
 
 The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
 
@@ -903,6 +909,25 @@ A rhino in profile, silhouetted against a huge setting sun on the savanna, rim-l
 | `trees` | 3 | Acacia trees on the horizon, 0–6 |
 | `birds` | 9 | Birds circling overhead, 0 = none |
 | `glow` | 1 | Rim light, horn and eye glow |
+
+### `temple`: Greek temple by moonlight
+
+<img src="docs/gifs/temple.gif" width="260" alt="temple style">
+
+A Greek temple on a hilltop over a moonlit sea, cypresses either side. On every kick the stone drums of the columns split apart, the entablature and pediment lifting off with them, with light pouring out of every crack, then settle back shut. The columns fill with light from the base like a spectrum, bass in the middle and highs at the ends. Through the doorway a statue of the god stands backlit by the bass, eyes flashing on the kicks, and the light spills down the steps towards you. A sunburst in the pediment plays the spectrum, the meander frieze runs along one repeat per beat, and two bronze braziers flare with the highs, throwing embers. `-P ruin` breaks it into ruins: snapped columns, no roof, fallen drums in front of the steps. Uses the `aegean` palette unless you pass `-p` (try `-p blood`, `-p ember` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `columns` | 6 | Number of columns, 2–12 |
+| `order` | `doric` | `doric` (plain capitals) or `ionic` (scrolled capitals, moulded bases) |
+| `split` | 1 | How far the column drums fly apart on kicks, 0 = solid |
+| `fill` | 1 | Light rising in the columns with the spectrum, 0 = off |
+| `light` | 1 | Glow from the doorway, the statue's eyes and the pediment sunburst |
+| `fire` | 1 | Braziers in front of the steps, 0 = none |
+| `frieze` | 1 | Speed of the meander frieze, one repeat per beat, 0 = still |
+| `moon` | 1 | Size of the moon, 0 = no moon |
+| `stars` | 1 | Stars, 0 = none |
+| `ruin` | 0 | 0 = intact, up to 1 = broken columns, fallen drums, no roof |
 
 ---
 
@@ -1357,6 +1382,15 @@ viz track.wav -s rhino -g --grain 12                       # black & white docum
 viz track.wav -s rhino --ascii 12                          # the rhino cut out of ASCII light
 viz track.wav -s rhino -f landscape -P trees=6             # wide savanna for YouTube
 viz track.wav -s rhino -P "sun=1+0.2*sine(4)" --fx bloom   # the sun swells every 4 bars
+
+# Greek temple
+viz track.wav -s temple                                    # moonlit temple, columns splitting on the kicks
+viz track.wav -s temple -P order=ionic -P columns=8        # ionic front, eight columns
+viz track.wav -s temple -P ruin=0.7 -p blood               # blood-red ruins
+viz track.wav -s temple -g --grain 12                      # old marble photograph
+viz track.wav -s temple --ascii 12                         # the temple in ASCII
+viz track.wav -s temple -P split=2 --fx shake,bloom        # the temple shaking itself apart
+viz track.wav -s temple -P "light=0.5+1.5*saw(8)"             # the doorway brightening over 8 bars
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art

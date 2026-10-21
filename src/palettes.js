@@ -17,6 +17,7 @@ export const palettes = {
   spectral: { bg: ['#020608', '#071a1f'], colors: ['#0e3a42', '#2fa39a', '#a8fff0'], accent: '#7dffe3', text: '#e2fff9' },
   verdant: { bg: ['#010a04', '#03190b'], colors: ['#06451b', '#0b8a31', '#16d24f', '#8dff4a'], accent: '#22ff66', text: '#e2ffe6' },
   savanna: { bg: ['#120818', '#3b1424'], colors: ['#6e2a1c', '#e0742a', '#ffcf6e'], accent: '#ffb347', text: '#fff1dc' },
+  aegean:  { bg: ['#040814', '#0f1c3a'], colors: ['#25314f', '#b9a989', '#f4e8cf'], accent: '#ffb347', text: '#f4ead6' },
 };
 
 export function hexToRgb(hex) {
