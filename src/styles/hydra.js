@@ -1,3 +1,4 @@
+import { Path2D } from 'skia-canvas';
 import { mix, rgba, rampAt } from '../palettes.js';
 import { clamp, ribbon, sampleSpectrum } from '../util.js';
 import { glowSprite, makeStars, drawStars } from '../sea.js';
@@ -7,7 +8,7 @@ const SPINE = 30; // points along each neck
 
 export default {
   name: 'hydra',
-  description: 'The hydra rising from the swamp at Lerna: one head for each slice of the spectrum, snapping and spitting venom on the kicks, and on the biggest hits two new heads grow',
+  description: 'The hydra rising from the swamp at Lerna, a serpent queen with flowing tresses: one head for each slice of the spectrum, snapping and spitting venom on the kicks, and on the biggest hits two new heads grow',
   palette: 'lerna', // used when no -p is given
   params: {
     heads: 5,     // heads it starts with (1–9)
@@ -177,7 +178,7 @@ export default {
       let x = rx, y = ry;
       for (let k = 0; k <= SPINE; k++) {
         const f = k / SPINE;
-        pts.push({ x, y, w: W * (1.35 - 0.85 * f) * (0.4 + 0.6 * g) });
+        pts.push({ x, y, w: W * (1.3 - 0.9 * f) * (0.4 + 0.6 * g) });
         // Rise and fan out, then the head hooks over forward.
         const ang = -Math.PI / 2 + fan * (0.12 + 0.45 * f) + amp * Math.sin(t * neck.speed + neck.phase - f * 5) * f
           + Math.sign(fan || 1) * neck.hook * f ** 4 * (1 - 0.6 * clamp(st));
@@ -195,7 +196,7 @@ export default {
       ctx.fillStyle = rgba(mix(color, palette.text, 0.3), 0.22);
       ctx.fill(ribbon(pts.map((q) => ({ x: q.x - q.w * 0.35, y: q.y - q.w * 0.2, w: q.w * 0.4 }))));
       // Belly plates down the front of the neck.
-      ctx.strokeStyle = rgba(mix(color, palette.text, 0.35), 0.35);
+      ctx.strokeStyle = rgba(mix(color, palette.text, 0.35), 0.2);
       ctx.lineWidth = Math.max(1, W * 0.12);
       ctx.beginPath();
       for (let k = 2; k < SPINE - 1; k += 2) {
@@ -206,7 +207,7 @@ export default {
       }
       ctx.stroke();
       const end = pts.at(-1), prev = pts.at(-4);
-      heads.push({ x: end.x, y: end.y, a: Math.atan2(end.y - prev.y, end.x - prev.x), size: W * 3.2 * (0.5 + 0.5 * g), st: clamp(st), color });
+      heads.push({ x: end.x, y: end.y, a: Math.atan2(end.y - prev.y, end.x - prev.x), size: W * 3.2 * (0.5 + 0.5 * g), st: clamp(st), color, phase: neck.phase });
     }
     for (const h of heads) this.drawHead(ctx, h, frame, palette, dark, glowAmt);
 
@@ -311,77 +312,156 @@ export default {
     ctx.globalCompositeOperation = 'source-over';
   },
 
-  // A dragon head pointing along h.a: crested skull, jaw that drops open on
-  // a snap, teeth, glowing eye.
+  // A serpent queen's head pointing along h.a: a slender, smooth head with
+  // flowing frills swept back like hair, a jewel on the brow, an almond eye
+  // with lashes, and a jaw that drops open on a snap to show two slim fangs.
   drawHead(ctx, h, frame, palette, dark, glowAmt) {
-    const s = h.size, gape = 0.15 + 0.55 * h.st;
+    const s = h.size, gape = 0.05 + 0.5 * h.st, t = this.t;
     ctx.save();
     ctx.translate(h.x, h.y);
     ctx.rotate(h.a);
-    if (Math.cos(h.a) < 0) ctx.scale(1, -1); // keep the crest on top
-    const skin = mix(h.color, dark, 0.25);
-    // Lower jaw.
+    if (Math.cos(h.a) < 0) ctx.scale(1, -1); // keep the frills on top
+    const skin = mix(h.color, palette.colors[2], 0.15);
+    const outline = rgba(dark, 0.55);
+
+    // Tresses: long frills flowing back from the crown like hair, drooping
+    // and rippling as she moves.
+    const frills = new Path2D();
+    for (let i = 0; i < 7; i++) {
+      const f = i / 6;
+      const bx = s * (0.18 - 0.5 * f), by = s * (-0.29 + 0.25 * f);
+      const L = s * (1.25 - 0.3 * f), droop = s * (0.25 + 0.35 * f);
+      const pts = [];
+      for (let k = 0; k <= 10; k++) {
+        const q = k / 10;
+        const ripple = Math.sin(t * 3.2 + h.phase + i * 0.7 - q * 5) * s * 0.07 * q * (1 + frame.mid);
+        pts.push({ x: bx - L * q, y: by - s * 0.12 * q * (1 - q) * 4 + droop * q * q + ripple, w: s * 0.075 * Math.sin(Math.PI * Math.min(1, q * 0.9 + 0.12)) });
+      }
+      frills.addPath(ribbon(pts));
+    }
+    const fg = ctx.createLinearGradient(0, 0, -s * 1.3, 0);
+    fg.addColorStop(0, mix(h.color, palette.colors[2], 0.3));
+    fg.addColorStop(1, rgba(mix(palette.colors[2], palette.accent, 0.2), 0.75));
+    ctx.fillStyle = fg;
+    ctx.fill(frills);
+    ctx.strokeStyle = rgba(dark, 0.3);
+    ctx.lineWidth = Math.max(1, s * 0.015);
+    ctx.stroke(frills);
+
+    // Lower jaw, slim, opening on the snap.
     ctx.save();
-    ctx.translate(-s * 0.2, s * 0.08);
+    ctx.translate(s * 0.1, s * 0.08);
     ctx.rotate(gape);
     ctx.fillStyle = mix(skin, dark, 0.3);
     ctx.beginPath();
-    ctx.moveTo(0, -s * 0.05);
-    ctx.lineTo(s * 1.0, s * 0.02);
-    ctx.lineTo(s * 0.95, s * 0.12);
-    ctx.quadraticCurveTo(s * 0.4, s * 0.22, -s * 0.05, s * 0.16);
+    ctx.moveTo(s * 0.1, -s * 0.03);
+    ctx.quadraticCurveTo(s * 0.5, -s * 0.01, s * 0.8, -s * 0.03);
+    ctx.quadraticCurveTo(s * 0.75, s * 0.05, s * 0.45, s * 0.08);
+    ctx.quadraticCurveTo(s * 0.2, s * 0.09, 0, s * 0.04);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = rgba(palette.text, 0.85);
-    for (let k = 0; k < 5; k++) {
-      const x = s * (0.25 + k * 0.15);
-      ctx.beginPath();
-      ctx.moveTo(x, -s * 0.03);
-      ctx.lineTo(x + s * 0.04, -s * 0.12);
-      ctx.lineTo(x + s * 0.08, -s * 0.03);
-      ctx.fill();
-    }
+    ctx.strokeStyle = outline;
+    ctx.stroke();
     ctx.restore();
-    // Mouth glow behind the teeth.
     if (h.st > 0.1) {
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = h.st * glowAmt * 0.7;
-      ctx.drawImage(this.eye, s * 0.1, -s * 0.2, s * 0.9, s * 0.6);
+      ctx.globalAlpha = h.st * glowAmt * 0.6;
+      ctx.drawImage(this.eye, s * 0.25, -s * 0.12, s * 0.7, s * 0.45);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
+      // Two slim fangs.
+      ctx.fillStyle = rgba(palette.text, 0.9);
+      for (const x of [0.62, 0.78]) {
+        ctx.beginPath();
+        ctx.moveTo(s * x, s * 0.05);
+        ctx.quadraticCurveTo(s * (x + 0.01), s * (0.1 + 0.08 * h.st), s * (x + 0.035), s * (0.12 + 0.1 * h.st));
+        ctx.lineTo(s * (x + 0.04), s * 0.05);
+        ctx.fill();
+      }
     }
-    // Skull with crest spikes.
-    ctx.fillStyle = skin;
+
+    // Head: rounded crown, long elegant face, fine pointed snout.
+    const head = new Path2D();
+    head.moveTo(-s * 0.3, s * 0.12);
+    head.bezierCurveTo(-s * 0.36, -s * 0.1, -s * 0.15, -s * 0.32, s * 0.15, -s * 0.3);
+    head.bezierCurveTo(s * 0.45, -s * 0.28, s * 0.75, -s * 0.15, s * 0.98, -s * 0.03);
+    head.quadraticCurveTo(s * 1.05, s * 0.01, s * 0.95, s * 0.05);
+    head.lineTo(s * 0.3, s * 0.07);
+    head.quadraticCurveTo(0, s * 0.13, -s * 0.3, s * 0.12);
+    head.closePath();
+    const hg = ctx.createLinearGradient(0, -s * 0.3, 0, s * 0.12);
+    hg.addColorStop(0, mix(skin, palette.text, 0.25));
+    hg.addColorStop(1, mix(skin, dark, 0.2));
+    ctx.fillStyle = hg;
+    ctx.fill(head);
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = Math.max(1, s * 0.025);
+    ctx.stroke(head);
+    // Lips: a pale line along the mouth.
+    ctx.strokeStyle = rgba(mix(palette.colors[2], h.color, 0.4), 0.7);
+    ctx.lineWidth = Math.max(1, s * 0.022);
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-s * 0.45, s * 0.1);
-    ctx.lineTo(-s * 0.4, -s * 0.18);
-    ctx.lineTo(-s * 0.8, -s * 0.45);
-    ctx.lineTo(-s * 0.25, -s * 0.28);
-    ctx.lineTo(-s * 0.55, -s * 0.6);
-    ctx.lineTo(-s * 0.05, -s * 0.32);
-    ctx.quadraticCurveTo(s * 0.45, -s * 0.32, s * 1.05, -s * 0.08);
-    ctx.lineTo(s * 1.08, s * 0.04);
-    ctx.lineTo(s * 0.9, s * 0.03);
-    ctx.lineTo(-s * 0.2, s * 0.1);
+    ctx.moveTo(s * 0.4, s * 0.065);
+    ctx.quadraticCurveTo(s * 0.7, s * 0.05, s * 0.94, s * 0.04);
+    ctx.stroke();
+
+    // Almond eye, tilted up, with a lid line and lashes.
+    ctx.save();
+    ctx.translate(s * 0.42, -s * 0.1);
+    ctx.rotate(-0.18);
+    const ew = s * 0.12, eh = s * 0.052;
+    const eye = new Path2D();
+    eye.moveTo(-ew, 0);
+    eye.quadraticCurveTo(0, -eh * 1.6, ew, 0);
+    eye.quadraticCurveTo(0, eh * 1.2, -ew, 0);
+    ctx.fillStyle = mix(palette.text, palette.accent, 0.35);
+    ctx.fill(eye);
+    ctx.save();
+    ctx.clip(eye);
+    ctx.fillStyle = palette.accent;
+    ctx.beginPath();
+    ctx.arc(s * 0.01, 0, eh * 0.95, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.beginPath();
+    ctx.ellipse(s * 0.01, 0, eh * 0.18, eh * 0.85, 0, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = rgba(dark, 0.9);
+    ctx.lineWidth = Math.max(1, s * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(-ew * 1.05, eh * 0.1);
+    ctx.quadraticCurveTo(0, -eh * 1.75, ew * 1.15, -eh * 0.15);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(1, s * 0.025);
+    ctx.beginPath();
+    for (const x of [-0.6, -0.2, 0.2, 0.55]) {
+      // Fanned out from the lid, curling back at the tips.
+      const px = x * ew, py = -eh * 0.8 * (1 - 0.6 * x * x);
+      const a = -Math.PI / 2 + 0.9 * x - 0.25, l = eh * 1.05;
+      ctx.moveTo(px, py);
+      ctx.quadraticCurveTo(px + Math.cos(a) * l * 0.6, py + Math.sin(a) * l * 0.6, px + Math.cos(a) * l - eh * 0.3, py + Math.sin(a) * l);
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Jewel on the brow, and the eye's glow.
+    ctx.fillStyle = mix(palette.accent, palette.text, 0.3);
+    ctx.beginPath();
+    const jx = s * 0.22, jy = -s * 0.27, jr = s * 0.045;
+    ctx.moveTo(jx, jy - jr * 1.3);
+    ctx.lineTo(jx + jr, jy);
+    ctx.lineTo(jx, jy + jr * 1.1);
+    ctx.lineTo(jx - jr, jy);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = rgba(dark, 0.6);
-    ctx.lineWidth = Math.max(1, s * 0.03);
-    ctx.stroke();
-    ctx.fillStyle = rgba(palette.text, 0.85);
-    for (let k = 0; k < 5; k++) {
-      const x = s * (0.3 + k * 0.14);
-      ctx.beginPath();
-      ctx.moveTo(x, s * 0.05);
-      ctx.lineTo(x + s * 0.04, s * 0.14);
-      ctx.lineTo(x + s * 0.08, s * 0.05);
-      ctx.fill();
-    }
-    // Eye.
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = clamp(0.5 + 0.5 * Math.max(h.st, frame.pulse)) * glowAmt;
-    const er = s * (0.22 + 0.15 * h.st);
-    ctx.drawImage(this.eye, s * 0.35 - er, -s * 0.15 - er, er * 2, er * 2);
+    ctx.globalAlpha = clamp(0.3 + 0.7 * frame.pulse) * glowAmt * 0.7;
+    ctx.drawImage(this.eye, jx - s * 0.15, jy - s * 0.15, s * 0.3, s * 0.3);
+    ctx.globalAlpha = clamp(0.45 + 0.55 * Math.max(h.st, frame.pulse)) * glowAmt;
+    const er = s * (0.15 + 0.12 * h.st);
+    ctx.drawImage(this.eye, s * 0.43 - er, -s * 0.1 - er, er * 2, er * 2);
     ctx.restore();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
