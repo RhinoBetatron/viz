@@ -109,7 +109,7 @@ const program = new Command();
 program
   .name('viz')
   .description('Turn audio into audio-reactive teaser videos for Instagram')
-  .version('0.1.0')
+  .version('0.4.0')
   .argument('[input]', 'audio file (.wav, .aiff, .flac, .mp3), a folder of them, or a .csv/.json batch file')
   .option('-s, --style <name>', `visual style: ${Object.keys(styles).join(', ')}`, 'bars')
   .option('-o, --output <file>', 'output .mp4 (default: <input>_<style>.mp4 next to the input)')
@@ -120,6 +120,7 @@ program
   .option('--end <time>', 'where the clip ends (instead of --duration)', parseTime)
   .option('-p, --palette <name>', `colours: ${Object.keys(palettes).join(', ')}, auto (from --cover)`)
   .option('-c, --cover <image>', 'cover art: blurred background + used by styles like radial')
+  .option('-i, --image <file>', 'a photo to manipulate and destroy with the music (the photo style, picked automatically unless -s is given)')
   .option('--bg <mode>', 'background: gradient, cover, black (default: cover if --cover given)')
   .option('-g, --grayscale', 'black & white, darker and moodier (uses the gloom palette unless -p is set)')
   .option('--ascii [cell]', 'redraw every frame as greyscale ASCII art; optional character size in px at 1080p (default 10)')
@@ -145,7 +146,7 @@ program
   .option('--preview', 'fast low-res 5s draft to check the look')
   .option('--gpu', 'render on the GPU (can be faster for heavy styles)')
   .option('--open', 'open the video when done')
-  .option('--watch', 'keep running: re-render a preview whenever a style file, the track or the cover changes')
+  .option('--watch', 'keep running: re-render a preview whenever a style file, the track, the cover or the image changes')
   .option('--random [seed]', 'random style, palette, settings and effects; prints the command to get it again')
   .option('--list-styles', 'show styles and their --param settings')
   .option('--list-palettes', 'show colour palettes')
@@ -167,6 +168,15 @@ async function main(input, opts) {
   if (opts.snap && !['bar', 'beat'].includes(opts.snap)) program.error('--snap takes bar or beat');
   const hookLead = opts.hook === true ? 2 : opts.hook;
   const loop = opts.loop === true ? 1.5 : opts.loop ?? 0;
+
+  for (const [flag, file] of [['--image', opts.image], ['--cover', opts.cover]]) {
+    if (file) await stat(file).catch(() => program.error(`${flag}: can't find ${file}`));
+  }
+  // --image on its own means the photo style, which can't do without a picture.
+  if (opts.image && !given('style')) opts.style = 'photo';
+  if (!opts.image && !opts.cover && (opts.style === 'photo' || opts.scene.some((sc) => sc.style === 'photo') || /(^|,)photo(\/|,|$)/.test(typeof opts.auto === 'string' ? opts.auto : ''))) {
+    program.error('the photo style needs a picture: add --image photo.jpg');
+  }
 
   let randomSeed = null;
   if (opts.random !== undefined) {
@@ -287,7 +297,7 @@ async function main(input, opts) {
     const t0 = Date.now();
     const result = await render({
       input: file, output, scenes, width, height, duration, preset,
-      fps: opts.fps, start, cover: opts.cover, background: opts.bg,
+      fps: opts.fps, start, cover: opts.cover, image: opts.image, background: opts.bg,
       title: opts.title, subtitle: opts.subtitle, font: opts.font,
       fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, grayscale: opts.grayscale, grain: opts.grain,
       fx: opts.fx, loop, drums: opts.drums, grid: structure?.grid,
@@ -330,10 +340,16 @@ function randomLook(input, opts, seed, given) {
   const random = rng(seed);
   const pick = (list) => list[Math.floor(random() * list.length)];
   const chosen = [];
-  if (!given('style')) opts.style = pick(Object.keys(styles));
+  // Without a picture the photo style has nothing to work on; with one, keep it.
+  if (!given('style') && !opts.image) opts.style = pick(Object.keys(styles).filter((n) => n !== 'photo'));
   chosen.push('-s', opts.style);
   const style = styles[opts.style];
   if (!style) return; // reported by the caller
+  // A style with named presets (photo) gets one picked too.
+  if (style.presets && !('preset' in opts.param)) {
+    opts.param.preset = pick(style.presets);
+    chosen.push('-P', `preset=${opts.param.preset}`);
+  }
   if (!given('palette') && random() < 0.5) opts.palette = pick(Object.keys(palettes));
   if (opts.palette && !given('palette')) chosen.push('-p', opts.palette);
   // Nudge about half the numeric settings, between half and double.
@@ -366,7 +382,7 @@ function randomLook(input, opts, seed, given) {
 function watch(input, opts) {
   const args = process.argv.slice(2).filter((a) => a !== '--watch');
   if (!opts.preview) args.push('--preview');
-  const watched = [SRC_DIR, input, opts.cover, opts.drums].filter(Boolean);
+  const watched = [SRC_DIR, input, opts.cover, opts.image, opts.drums].filter(Boolean);
   let child = null, timer = null;
   const run = (reason) => {
     if (reason) console.error(`\n↻ ${reason} changed, rendering again…`);
@@ -421,7 +437,7 @@ async function runBatch(file) {
 
 const TRUE = /^(yes|y|true|x|1|on)$/i, FALSE = /^(no|n|false|0|off|)$/i;
 const YES = /^(yes|y|true|x|on)$/i; // for options with an optional number, where 1 means 1
-const PATH_KEYS = new Set(['cover', 'c', 'output', 'o', 'drums']);
+const PATH_KEYS = new Set(['cover', 'c', 'image', 'i', 'output', 'o', 'drums']);
 // Repeatable options; in a CSV cell, separate several with ;
 const LIST_KEYS = new Set(['param', 'P', 'scene']);
 

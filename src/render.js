@@ -271,8 +271,10 @@ function mixScenes(scenes, t) {
   }
 }
 
-function resolvePalette(name, { grayscale, style, cover }) {
+function resolvePalette(name, { grayscale, style, cover, image }) {
   if (!name && grayscale) return palettes.gloom;
+  // The photo style takes its colours (for tints and embers) from the photo.
+  if (!name && style.name === 'photo' && (image ?? cover)) return paletteFromImage(new Canvas(48, 48).getContext('2d'), image ?? cover);
   if (!name && style.palette) return palettes[style.palette];
   if (name === 'auto' || (!name && cover)) {
     if (!cover) throw new Error('--palette auto needs --cover <image> to pull colours from');
@@ -335,7 +337,7 @@ function drawGlitch(ctx, copy, layer, x, frame, { width, height, u }) {
 export async function render(opts) {
   const {
     input, output, width, height, fps = 30, start = 0, duration,
-    cover: coverPath, background, title, subtitle, scenes: sceneSpecs,
+    cover: coverPath, image: imagePath, background, title, subtitle, scenes: sceneSpecs,
     fade: wantFade = true, crf = 18, preset = 'medium', seed = 1, grayscale = false, grain, ascii = 0,
     fx = {}, loop = 0, drums, grid: givenGrid,
     font = '"Helvetica Neue", Helvetica, Arial, sans-serif', gpu = false, onStage, onProgress,
@@ -388,6 +390,7 @@ export async function render(opts) {
   const clipDuration = outFrames / fps;
 
   const cover = coverPath ? await loadImage(coverPath) : null;
+  const image = imagePath ? await loadImage(imagePath) : null;
   const createCanvas = (w, h) => Object.assign(new Canvas(w, h), { gpu });
   const canvas = createCanvas(width, height);
   let ctx = canvas.getContext('2d');
@@ -413,7 +416,7 @@ export async function render(opts) {
   // (spin=bass*0.1) are re-evaluated every frame.
   const scenes = [];
   for (const [i, spec] of specs.sort((a, b) => a.time - b.time).entries()) {
-    const palette = resolvePalette(spec.palette, { grayscale, style: spec.style, cover });
+    const palette = resolvePalette(spec.palette, { grayscale, style: spec.style, cover, image });
     const params = { ...spec.style.params, ...spec.params };
     const mods = compileParams(params);
     for (const [k, fn] of mods) params[k] = fn(frames[0]);
@@ -425,6 +428,7 @@ export async function render(opts) {
       palette,
       params,
       cover,
+      image,
       analysis,
       duration: clipDuration,
       random: rng(seed + i),

@@ -2,12 +2,15 @@
 
 A command-line tool that turns audio files into audio-reactive videos for Instagram Reels, feed posts and YouTube.
 
-- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`. Each has its own settings (`-P key=value`).
+- **Styles:** `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo`. Each has its own settings (`-P key=value`).
 - **Scenes:** blend between styles at chosen times, or let `--auto` / `--analyze` find the intro, drops and breakdowns.
 - **Formats:** 9:16 Reel, 4:5 feed, 1:1 square and 16:9 landscape. Output is H.264 + AAC, ready for Instagram.
 - **Music-aware:** `--hook` starts on the drop, a beat grid keeps things on the bar, settings can follow the audio (`-P glow=1+pulse*3`), and `--loop` makes Reels that loop seamlessly.
+- **Photo mode:** `--image photo.jpg` tears a photo apart with the music: glitch slices, RGB split, pixel sorting, melting, shattering and burning.
 - **Extras:** palettes, cover art, title text, post-effects (bloom, VHS, shake…), grayscale mode, ASCII-art mode and film grain.
 - **Workflow:** `--watch` re-renders as you edit, `--random` finds new looks, and a CSV/JSON file renders a whole campaign.
+
+What's new in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Gallery
 
@@ -81,6 +84,7 @@ The same styles with other palettes and settings, [post-effects](#post-effects--
 - [Ready-made commands](#ready-made-commands)
 - [Every option](#every-option)
 - [Styles and their --param settings](#styles-and-their---param-settings)
+- [Photo mode: --image](#photo-mode---image)
 - [ASCII mode: --ascii](#ascii-mode---ascii)
 - [Scenes: blending between styles](#scenes-blending-between-styles)
 - [Automatic sections: --analyze / --auto](#automatic-sections---analyze----auto)
@@ -311,6 +315,9 @@ viz TRACK.wav -s temple -d 20 --open
 viz TRACK.wav --start 0:40 -d 40 -s temple --scene +8=medusa,transition=kick --scene +16=labyrinth,transition=zoom \
   --scene +24=hydra,transition=kick --scene +32=pegasus,transition=flash --open
 
+# Photo: your photo torn apart with the music, coming apart as the track goes on
+viz TRACK.wav --image photo.jpg -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -453,7 +460,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
@@ -465,6 +472,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
 | `-c, --cover <image>` | Cover art: blurred background, plus the centre of `radial` | |
+| `-i, --image <file>` | A photo to manipulate and destroy with the music; picks the `photo` style unless `-s` is given. See [Photo mode](#photo-mode---image) | |
 | `--bg <mode>` | `gradient`, `cover`, `black` | `cover` if `--cover` is set, else `gradient` |
 | `-t, --title <text>` | Big title text | |
 | `--subtitle <text>` | Smaller spaced-out text under the title | |
@@ -523,7 +531,7 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `lerna` (swamp violet, venom green) | `hydra` | |
 | `olympus` (dusk gold) | `pegasus` | |
 
-The Greek styles (`temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`) each bring their own palette and keep it when you chain them, so they tell one myth together: `--auto temple,hydra,labyrinth` (calm temple, the hydra on the drops, the labyrinth on the builds), or all five with `--scene`, as in the ready-made command above.
+The Greek styles (`temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo`) each bring their own palette and keep it when you chain them, so they tell one myth together: `--auto temple,hydra,labyrinth` (calm temple, the hydra on the drops, the labyrinth on the builds), or all five with `--scene`, as in the ready-made command above.
 
 The sea styles share the same waveform sea, so they also chain into one story. One way to run a whole track: `aurora` (intro) → `ghostship` → `kraken` (drop) → `abyss` (breakdown) → `lighthouse` → `maelstrom` (last drop) → `aurora` (outro).
 
@@ -1013,6 +1021,62 @@ Pegasus flying over a sea of clouds towards Olympus at dusk, the gods' temple gl
 
 ---
 
+## Photo mode: `--image`
+
+| <img src="docs/gifs/photo_mix.gif" width="200" alt="photo, mix"> | <img src="docs/gifs/photo_glitch.gif" width="200" alt="photo, glitch"> | <img src="docs/gifs/photo_shatter.gif" width="200" alt="photo, shatter"> |
+|:---:|:---:|:---:|
+| `--image demo.jpg` | `-P preset=glitch` | `-P preset=shatter` |
+| <img src="docs/gifs/photo_burn.gif" width="200" alt="photo, burn"> | <img src="docs/gifs/photo_melt.gif" width="200" alt="photo, melt"> | <img src="docs/gifs/photo_sort.gif" width="200" alt="photo, sort"> |
+| `-P preset=burn` | `-P preset=melt` | `-P preset=sort` |
+
+```bash
+viz track.wav --image photo.jpg --open                     # mix: a bit of everything, building up
+viz track.wav --image photo.jpg -P preset=glitch --hook    # glitch tears, RGB split and pixelation on the drop
+```
+
+Give `--image` a photo (JPEG, PNG, WebP…) and viz tears it apart in time with the music. `--image` switches to the `photo` style unless you pick another with `-s`, so you can also bring the photo in as a scene: `-s temple --scene +8=photo,transition=glitch`. The photo fills the frame (`-P fit=contain` shows all of it over a blurred copy), and its colours become the palette for the embers, cracks and `-P tint`, unless you pass `-p`.
+
+There are ten effects, each one hitting on a different part of the music:
+
+| effect | what it does |
+|---|---|
+| `zoom` | Punches in on the kicks; a slow drift the rest of the time |
+| `rgb` | Pulls the red, green and blue channels apart, wider on the kicks and with the bass |
+| `slices` | Horizontal glitch tears that jump sideways on the hits |
+| `wave` | Rows ripple sideways with the waveform, like a bad signal |
+| `mosaic` | Pixelates with the bass, in big blocks on the kicks |
+| `sort` | Pixel sorting: the brightest runs of each column streak downwards, further when it's loud |
+| `melt` | The photo drips down column by column when it's loud and slowly recovers when it's quiet |
+| `shatter` | Breaks into glass shards on big kicks, which fly out from the impact and snap back |
+| `burn` | Burns away from the inside: holes with glowing edges creep open through the clip and jump on every kick. Burnt is burnt, so by the end of a long clip a lot of the photo is gone, showing the background behind |
+| `invert` | Negative flashes on the hardest hits |
+
+Pick a preset with `-P preset=…`, then turn any effect up, down or off with its own setting (`-P burn=2`, `-P rgb=0`). A setting can follow the music like any other (`-P "rgb=1+2*square(1)"`, `-P "burn=+0=0 +20=2"`).
+
+| preset | effects |
+|---|---|
+| `mix` (default) | everything, in moderation: RGB split, slices, shatter, burn, pixel sorting, melt, some wave, mosaic and invert |
+| `glitch` | RGB split, slices, mosaic and invert flashes, a little wave |
+| `melt` | melting, pixel sorting and waves |
+| `shatter` | shatters on the big kicks, with RGB split and a few slices |
+| `burn` | burns away, with a little RGB split, wave and invert |
+| `sort` | pixel sorting, with RGB split and a few slices |
+| `clean` | just the zoom: the photo pulsing with the kicks, ready for your own effects |
+
+By default the damage builds up through the clip, starting at half strength and ending at full, so the photo comes apart as the track goes on. `-P decay=0` hits at full force from the first frame; `-P decay=1` starts from a clean photo.
+
+| param | default | |
+|---|---|---|
+| `preset` | `mix` | `mix`, `glitch`, `melt`, `shatter`, `burn`, `sort` or `clean` |
+| `fit` | `cover` | `cover` fills the frame; `contain` shows the whole photo over a blurred copy |
+| `decay` | 0.5 | How much the damage builds up over the clip, 0 = full force from the start |
+| `zoom` `rgb` `slices` `wave` `mosaic` `sort` `melt` `shatter` `burn` `invert` | `auto` | Strength of each effect, 0 = off; `auto` takes it from the preset |
+| `tint` | 0 | Washes the photo in the palette's colours, 0–1 (try `-p blood -P tint=0.8`) |
+
+It goes with everything else: titles, `--fx vhs,scanlines`, `-g`, `--ascii`, `--loop`, `--hook`, `--random` (which picks a preset too) and batch files (an `image` column). The demo photo in the gallery, [docs/demo.jpg](docs/demo.jpg), is a frame of the `rhino` style; try it with `--image docs/demo.jpg`. Heavy presets render slower than most styles (about half real time at 1080×1920 for `mix`), so use `--preview` while you try things out.
+
+---
+
 ## ASCII mode: `--ascii`
 
 | <img src="docs/gifs/ascii_hands.gif" width="200" alt="hands in ascii"> | <img src="docs/gifs/ascii_vines.gif" width="200" alt="vines in ascii"> | <img src="docs/gifs/ascii_occult.gif" width="200" alt="occult in ascii"> | <img src="docs/gifs/ascii_wave.gif" width="200" alt="wave in ascii"> |
@@ -1291,7 +1355,7 @@ viz track.wav --start 1:00 -d 8 -s vines --loop 3    # longer, softer join
 viz track.wav -s mystyle --watch --open
 ```
 
-Renders a preview, then waits. Each time you save a file in `src/` (a style, `sea.js`, …), the track, the cover or the drum stem, it renders again in a fresh process, so your edits are picked up. With `--open`, it closes the old version in QuickTime (which wouldn't notice the file changed) and opens the new one. Saving again mid-render restarts it. `--watch` always renders with `--preview`. Stop with ctrl+c.
+Renders a preview, then waits. Each time you save a file in `src/` (a style, `sea.js`, …), the track, the cover, the image or the drum stem, it renders again in a fresh process, so your edits are picked up. With `--open`, it closes the old version in QuickTime (which wouldn't notice the file changed) and opens the new one. Saving again mid-render restarts it. `--watch` always renders with `--preview`. Stop with ctrl+c.
 
 ### `--random`: find new looks
 
@@ -1496,6 +1560,15 @@ viz track.wav -s pegasus                                   # flying to Olympus, 
 viz track.wav -s pegasus -P flap=1 -P lightning=2          # beating every beat in a lightning storm
 viz track.wav -s pegasus -p ember -P "flap=0.25+0.75*rms"  # wings beat harder when it's loud
 
+# Photo mode
+viz track.wav --image photo.jpg                            # mix: the photo comes apart over the clip
+viz track.wav --image photo.jpg -P preset=glitch --fx vhs  # glitch tape
+viz track.wav --image photo.jpg -P preset=burn -P decay=1 -d 30   # burns away from a clean photo
+viz track.wav --image photo.jpg -P preset=shatter --hook   # shatters on every big kick of the drop
+viz track.wav --image photo.jpg -P preset=clean -P rgb=1.5 -P slices=1   # build your own
+viz track.wav --image photo.jpg -p blood -P tint=0.9 -g    # stark, inked look
+viz track.wav --image photo.jpg -s occult --scene +8=photo,preset=melt,transition=glitch   # sigil, then the photo melting
+
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art
 viz track.wav -s wave --ascii 6                            # fine, dense characters
@@ -1623,7 +1696,7 @@ src/util.js         helpers for styles
 src/glyphs.js       runes, occult/alchemical symbols as vector paths
 src/sea.js          shared night sea (waveform waves, stars, moon, fog, rain, lightning)
 src/underwater.js   shared underwater bits (surface from below, light shafts, bubbles, snow)
-src/styles/*.js     one file per style
+src/styles/*.js     one file per style (photo.js is photo mode)
 ```
 
 ## Troubleshooting
