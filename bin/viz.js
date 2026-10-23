@@ -12,6 +12,7 @@ import { snapTime } from '../src/beats.js';
 import { effects, parseFx as readFx, fxString } from '../src/fx.js';
 import { compile as compileExpression, signals, lfos } from '../src/modulate.js';
 import { rng } from '../src/util.js';
+import { loadDrawing, describeTree, PROPS, SHAPE_VARS } from '../src/svg.js';
 
 const BIN = fileURLToPath(import.meta.url);
 const SRC_DIR = path.join(path.dirname(BIN), '../src');
@@ -121,6 +122,7 @@ program
   .option('-p, --palette <name>', `colours: ${Object.keys(palettes).join(', ')}, auto (from --cover)`)
   .option('-c, --cover <image>', 'cover art: blurred background + used by styles like radial')
   .option('-i, --image <file>', 'a photo to manipulate and destroy with the music (the photo style, picked automatically unless -s is given)')
+  .option('--svg <file>', 'an SVG (or a .json pack that rigs one) to animate with the music: the svg style, picked automatically unless -s is given (repeatable, for --scene)', (v, prev) => [...prev, v], [])
   .option('--bg <mode>', 'background: gradient, cover, black (default: cover if --cover given)')
   .option('-g, --grayscale', 'black & white, darker and moodier (uses the gloom palette unless -p is set)')
   .option('--ascii [cell]', 'redraw every frame as greyscale ASCII art; optional character size in px at 1080p (default 10)')
@@ -150,12 +152,23 @@ program
   .option('--random [seed]', 'random style, palette, settings and effects; prints the command to get it again')
   .option('--list-styles', 'show styles and their --param settings')
   .option('--list-palettes', 'show colour palettes')
+  .option('--list-layers', 'show the groups and shapes in the --svg drawing, and what a pack can set on them')
   .option('--list-fx', 'show post-effects, transitions, and the signals, LFOs and automation -P can use')
   .showHelpAfterError()
   .action(main);
 
 async function main(input, opts) {
-  if (opts.listStyles) return listStyles();
+  // Each --svg becomes a style of its own (named after the file or the pack).
+  const drawings = [];
+  for (const file of opts.svg) {
+    await stat(file).catch(() => program.error(`--svg: can't find ${file}`));
+    const style = await loadDrawing(file, styles.svg, Object.keys(styles)).catch((err) => program.error(`--svg: ${err.message}`));
+    styles[style.name] = style;
+    drawings.push(style);
+    if (!opts.listStyles && !opts.listLayers) for (const w of style.drawing.warnings) console.error(`  note: ${path.basename(file)}: ${w}`);
+  }
+  if (opts.listLayers) return listLayers(drawings);
+  if (opts.listStyles) return listStyles(drawings);
   if (opts.listPalettes) return listPalettes();
   if (opts.listFx) return listFx();
   if (!input) program.help();
@@ -172,8 +185,15 @@ async function main(input, opts) {
   for (const [flag, file] of [['--image', opts.image], ['--cover', opts.cover]]) {
     if (file) await stat(file).catch(() => program.error(`${flag}: can't find ${file}`));
   }
-  // --image on its own means the photo style, which can't do without a picture.
-  if (opts.image && !given('style')) opts.style = 'photo';
+  // --svg / --image on their own pick the svg / photo style, which can't do
+  // without one. -s svg means the (first) drawing.
+  if (drawings.length) {
+    if (!given('style') || opts.style === 'svg') opts.style = drawings[0].name;
+    for (const sc of opts.scene) if (sc.style === 'svg') sc.style = drawings[0].name;
+  } else if (opts.image && !given('style')) opts.style = 'photo';
+  if (!drawings.length && (opts.style === 'svg' || opts.scene.some((sc) => sc.style === 'svg') || /(^|,)svg(\/|,|$)/.test(typeof opts.auto === 'string' ? opts.auto : ''))) {
+    program.error('the svg style needs a drawing: add --svg logo.svg');
+  }
   if (!opts.image && !opts.cover && (opts.style === 'photo' || opts.scene.some((sc) => sc.style === 'photo') || /(^|,)photo(\/|,|$)/.test(typeof opts.auto === 'string' ? opts.auto : ''))) {
     program.error('the photo style needs a picture: add --image photo.jpg');
   }
@@ -182,7 +202,7 @@ async function main(input, opts) {
   if (opts.random !== undefined) {
     randomSeed = opts.random === true ? 1 + Math.floor(Math.random() * 99999) : Number(opts.random);
     if (!Number.isInteger(randomSeed)) program.error('--random takes a whole number seed, e.g. --random 42');
-    randomLook(input, opts, randomSeed, given);
+    randomLook(input, opts, randomSeed, given, drawings);
   }
 
   // The -s style (and -p palette) is the opening scene; --scene entries follow it.
@@ -336,12 +356,12 @@ function findHook({ sections, duration }) {
 
 // --random: fills in whatever wasn't given on the command line, then prints
 // the full command so a look you like can be rendered again.
-function randomLook(input, opts, seed, given) {
+function randomLook(input, opts, seed, given, drawings) {
   const random = rng(seed);
   const pick = (list) => list[Math.floor(random() * list.length)];
   const chosen = [];
   // Without a picture the photo style has nothing to work on; with one, keep it.
-  if (!given('style') && !opts.image) opts.style = pick(Object.keys(styles).filter((n) => n !== 'photo'));
+  if (!given('style') && !opts.image && !drawings.length) opts.style = pick(Object.keys(styles).filter((n) => n !== 'photo' && n !== 'svg'));
   chosen.push('-s', opts.style);
   const style = styles[opts.style];
   if (!style) return; // reported by the caller
@@ -352,10 +372,12 @@ function randomLook(input, opts, seed, given) {
   }
   if (!given('palette') && random() < 0.5) opts.palette = pick(Object.keys(palettes));
   if (opts.palette && !given('palette')) chosen.push('-p', opts.palette);
-  // Nudge about half the numeric settings, between half and double.
+  // Nudge about half the numeric settings, between half and double (inside
+  // a pack param's limits).
   for (const [k, v] of Object.entries(style.params ?? {})) {
     if (k in opts.param || typeof v !== 'number' || v === 0 || random() < 0.5) continue;
-    const value = Number.isInteger(v) && v > 1 ? Math.max(1, Math.round(v * (0.5 + random() * 1.3))) : +(v * 2 ** (random() * 2 - 1)).toFixed(3);
+    const { min = -Infinity, max = Infinity } = style.paramInfo?.[k] ?? {};
+    const value = Math.min(max, Math.max(min, Number.isInteger(v) && v > 1 ? Math.max(1, Math.round(v * (0.5 + random() * 1.3))) : +(v * 2 ** (random() * 2 - 1)).toFixed(3)));
     opts.param[k] = value;
     chosen.push('-P', `${k}=${value}`);
   }
@@ -379,10 +401,13 @@ function randomLook(input, opts, seed, given) {
 
 // --watch: re-runs the same command in a fresh process (so edited style files
 // are reloaded) whenever something it uses changes.
-function watch(input, opts) {
+async function watch(input, opts) {
   const args = process.argv.slice(2).filter((a) => a !== '--watch');
   if (!opts.preview) args.push('--preview');
-  const watched = [SRC_DIR, input, opts.cover, opts.image, opts.drums].filter(Boolean);
+  // A pack's SVG and an SVG's .viz.json are watched too.
+  const drawn = [];
+  for (const file of opts.svg) drawn.push(...(await loadDrawing(file, styles.svg).then((s) => s.files, () => [file])));
+  const watched = [...new Set([SRC_DIR, input, opts.cover, opts.image, opts.drums, ...drawn].filter(Boolean))];
   let child = null, timer = null;
   const run = (reason) => {
     if (reason) console.error(`\n↻ ${reason} changed, rendering again…`);
@@ -437,9 +462,9 @@ async function runBatch(file) {
 
 const TRUE = /^(yes|y|true|x|1|on)$/i, FALSE = /^(no|n|false|0|off|)$/i;
 const YES = /^(yes|y|true|x|on)$/i; // for options with an optional number, where 1 means 1
-const PATH_KEYS = new Set(['cover', 'c', 'image', 'i', 'output', 'o', 'drums']);
+const PATH_KEYS = new Set(['cover', 'c', 'image', 'i', 'svg', 'output', 'o', 'drums']);
 // Repeatable options; in a CSV cell, separate several with ;
-const LIST_KEYS = new Set(['param', 'P', 'scene']);
+const LIST_KEYS = new Set(['param', 'P', 'scene', 'svg']);
 
 function rowArgs(row, dir) {
   const args = [];
@@ -546,11 +571,33 @@ function printSuggestion(file, { opening, changes }, roles) {
   console.error(`\n  Copy and tweak that, or render it directly with: --auto ${[roles.calm, roles.drop, ...(roles.build !== roles.calm ? [roles.build] : [])].map(name).join(',')}\n`);
 }
 
-function listStyles() {
+function listStyles(drawings = []) {
   for (const s of Object.values(styles)) {
     console.log(`\n  ${s.name}  —  ${s.description}`);
-    for (const [k, v] of Object.entries(s.params ?? {})) console.log(`      --param ${k}=${v}`);
+    for (const [k, v] of Object.entries(s.params ?? {})) {
+      const info = s.paramInfo?.[k];
+      const range = info && (info.min !== undefined || info.max !== undefined) ? ` (${info.min ?? ''}–${info.max ?? ''})` : '';
+      console.log(`      --param ${k}=${v}${range}${info?.description ? `   ${info.description}` : ''}`);
+    }
   }
+  if (!drawings.length) console.log('\n  (add --svg logo.svg or --svg pack.json to see a drawing\'s own settings)');
+  console.log('');
+}
+
+function listLayers(drawings) {
+  if (!drawings.length) program.error('--list-layers shows what\'s in a drawing: add --svg logo.svg');
+  for (const s of drawings) {
+    const { drawing } = s;
+    const v = drawing.view;
+    console.log(`\n  ${path.basename(drawing.file)}  ·  ${+v.width.toFixed(2)}×${+v.height.toFixed(2)}  ·  ${drawing.nodes.filter((n) => n.path).length} shapes  ·  style "${s.name}"\n`);
+    for (const line of describeTree(drawing)) console.log(line);
+    for (const w of drawing.warnings) console.log(`\n  note: ${w}`);
+    if (s.rules.length) console.log(`\n  Rigged by ${s.rules.length} rule${s.rules.length > 1 ? 's' : ''}${Object.keys(s.paramInfo).length ? `, with params: ${Object.keys(s.paramInfo).join(', ')}` : ''}.`);
+  }
+  console.log('\n  Properties (in data-viz="rotate: beat*360; glow: high*20" or a pack\'s "layers"):\n');
+  for (const [k, d] of Object.entries(PROPS)) console.log(`      ${k.padEnd(8)} ${d}`);
+  console.log(`\n  Besides the signals and LFOs of --list-fx, expressions can use the style's\n  params (amount, intro, and a pack's own) and, for each shape:\n`);
+  for (const [k, d] of Object.entries(SHAPE_VARS)) console.log(`      ${k.padEnd(8)} ${d}`);
   console.log('');
 }
 

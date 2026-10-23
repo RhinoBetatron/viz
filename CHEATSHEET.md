@@ -130,6 +130,9 @@ viz TRACK.wav --start 0:40 -d 40 -s temple --scene +8=medusa,transition=kick --s
 # Photo: your photo torn apart with the music, coming apart as the track goes on
 viz TRACK.wav --image photo.jpg -d 20 --open
 
+# Logo: your SVG drawing itself on, then each part swelling and glowing with its band
+viz TRACK.wav --svg logo.svg -d 20 --open
+
 # Terminal: grasping hands redrawn as ASCII art
 viz TRACK.wav -s hands --ascii -d 20 --open
 
@@ -272,7 +275,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo`, `svg` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
@@ -285,6 +288,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
 | `-c, --cover <image>` | Cover art: blurred background, plus the centre of `radial` | |
 | `-i, --image <file>` | A photo to manipulate and destroy with the music; picks the `photo` style unless `-s` is given. See [Photo mode](#photo-mode---image) | |
+| `--svg <file>` | An SVG, or a `.json` pack that rigs one, to animate with the music; picks its style unless `-s` is given. Repeatable. See [SVG mode](#svg-mode---svg) | |
 | `--bg <mode>` | `gradient`, `cover`, `black` | `cover` if `--cover` is set, else `gradient` |
 | `-t, --title <text>` | Big title text | |
 | `--subtitle <text>` | Smaller spaced-out text under the title | |
@@ -312,6 +316,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--list-styles` | Show every style and its `--param` settings | |
 | `--list-palettes` | Show the palettes as colour swatches | |
 | `--list-fx` | Show the effects, transitions and the signals `-P` expressions can use | |
+| `--list-layers` | With `--svg`: show the drawing's groups and shapes, its parts and bands, and what a pack can set | |
 | `-h, --help` | Help | |
 
 **Folder input** renders every audio file in the folder with the same settings:
@@ -846,6 +851,142 @@ It goes with everything else: titles, `--fx vhs,scanlines`, `-g`, `--ascii`, `--
 
 ---
 
+## SVG mode: `--svg`
+
+| <img src="docs/gifs/svg_pack.gif" width="200" alt="svg, a rigged pack"> | <img src="docs/gifs/svg_pump.gif" width="200" alt="svg, pump"> | <img src="docs/gifs/svg_explode.gif" width="200" alt="svg, explode"> |
+|---|---|---|
+| `--svg docs/demo.viz.json` | `--svg docs/logo.svg` | `-P preset=explode` |
+| <img src="docs/gifs/svg_wire.gif" width="200" alt="svg, wire"> | <img src="docs/gifs/svg_glitch.gif" width="200" alt="svg, glitch"> | |
+| `-P preset=wire` | `-P preset=glitch` | |
+
+```bash
+viz track.wav --svg logo.svg --open                       # any SVG, animated by a preset
+viz track.wav --svg logo.svg -P preset=wire --hook        # neon outlines with sparks running round them
+viz track.wav --svg logo.viz.json -P spin=2               # a pack: rigged by you, with its own settings
+```
+
+Give `--svg` a drawing (a logo, an icon, artwork exported from Figma, Illustrator or Inkscape) and viz moves it with the music, shape by shape. Unlike a photo, an SVG is made of separate shapes and groups, so each can turn, stretch, glow, wobble, draw itself on or fly apart on its own. `--svg` switches to the drawing's style unless you pick another with `-s`, so it works as a scene too: `-s temple --scene +8=svg,transition=flash`.
+
+There are three ways to say what moves, from no effort to full control. Later ones win where they set the same thing:
+
+1. **A preset**, for any SVG as it is.
+2. **`data-viz` attributes** inside the SVG.
+3. **A pack file** next to it (`logo.viz.json`), which also declares the pack's own settings.
+
+### 1. Presets
+
+viz finds the drawing's main parts (the top-level groups and shapes, or the separate letters of a single-path wordmark) and gives each one a frequency band, from the bass for the first to the highs for the last. The parts draw themselves on in the first second and a half, then:
+
+| `-P preset=` | what happens |
+|---|---|
+| `pump` (default) | Each part swells and glows with its band, and the whole drawing punches in on the kicks |
+| `explode` | The parts (and the pieces inside them) fly apart and spin on every kick, then snap back |
+| `wire` | Neon outlines only, with sparks running round them, ripples on the kicks and edges shivering with the highs |
+| `glitch` | Parts jump sideways on hits, with red/blue split, slanting and flicker |
+| `none` | Nothing moves unless you rig it (the default for rigged drawings) |
+
+| param | default | |
+|---|---|---|
+| `preset` | `pump` | See above |
+| `amount` | 1 | How hard the preset hits |
+| `size` | 0.75 | How much of the frame the drawing fills |
+| `colors` | `auto` | `original`, `palette` (each part in a palette colour), `invert` (light and dark flipped, so black line art turns white), or `auto`: `invert` when the drawing is mostly dark, which would vanish on the dark background, else `original` |
+| `intro` | 1.5 | Seconds the parts take to draw themselves on, 0 = there from the start |
+
+`viz --svg logo.svg --list-layers` shows the drawing's groups and shapes, which ones are the parts and which band each gets, plus every property and variable below.
+
+### 2. `data-viz` attributes
+
+Add a `data-viz` attribute to any group or shape in the SVG, in a text editor or your design tool's attribute panel. It holds `property: value` pairs separated by `;`, and the values are the same expressions as `-P`:
+
+```xml
+<g id="wheel" data-viz="rotate: beat*360; scale: 1+kick*0.3">
+<path id="eye" data-viz="glow: high*30; sy: 1-pulse^3">
+```
+
+### 3. Pack files
+
+A pack is a JSON file that points at an SVG and rigs it from the outside, so the SVG can stay exactly as exported. It's how you turn a drawing into a style of your own: it gets a name (`-s sun-eye`, `--scene +8=sun-eye`), a description and palette, and **its own settings**, which show up in `--list-styles` and take `-P` like any built-in style's. `--svg logo.svg` also picks up `logo.viz.json` next to it automatically.
+
+The demo, [docs/demo.viz.json](docs/demo.viz.json), rigs [docs/demo.svg](docs/demo.svg):
+
+```json
+{
+  "svg": "demo.svg",
+  "name": "sun-eye",
+  "description": "The sun-eye emblem: rays that turn and flare with the bass, an eye that blinks on the kicks",
+  "palette": "ember",
+  "params": {
+    "spin":  { "default": 0.25, "min": -2, "max": 2, "description": "turns of the rays per bar" },
+    "flare": { "default": 1, "min": 0, "max": 3, "description": "how far the rays shoot out with their band" },
+    "blink": { "default": 1, "min": 0, "max": 1, "description": "how far the eye shuts on a kick" }
+  },
+  "layers": {
+    "#rays":  { "rotate": "bar*360*spin", "glow": "10+bass*40" },
+    ".ray":   { "sy": "1+band*flare*0.9", "origin": "50% 100%" },
+    "#ring":  { "draw": "clamp(t/2)", "outline": "1+bass*2", "echo": "pulse" },
+    "#eye":   { "sy": "1-pulse^3*blink*0.9", "scale": "1+bass*0.08" },
+    "#iris":  { "scale": "1+mid*0.35", "x": "(noise(1, 0)-0.5)*6" },
+    "#pupil": { "scale": "1.5-high*1.1" },
+    ".star":  { "scale": "0.5+band*1.2", "rotate": "beat*90", "opacity": "0.35+band" }
+  }
+}
+```
+
+```bash
+viz track.wav --svg docs/demo.viz.json                            # as rigged
+viz track.wav --svg docs/demo.viz.json -P spin=-1 -P blink=0      # its own settings, like any style
+viz track.wav --svg docs/demo.viz.json -P "flare=1+2*sine(4)"     # which can follow the music too
+viz --svg docs/demo.viz.json --list-styles                        # lists sun-eye with its settings
+```
+
+- **`svg`**: the drawing, relative to the pack file. Required.
+- **`name`**, **`description`**, **`palette`**: optional. The name defaults to the SVG's file name.
+- **`params`**: the pack's settings. Each one is either a plain default (`"spin": 0.25`) or `{ "default", "min", "max", "description" }`. Expressions in `layers` use them by name, and `-P` sets them, with numbers, expressions, LFOs or automation. `min`/`max` keep them in range, whatever `-P` or `--random` says. A pack can also set the defaults of the style's own settings, e.g. `"preset": "explode"` to add a preset on top of its rig.
+- **`layers`**: selector → properties. Selectors work like CSS: `#id` (also matches Inkscape layer names), `.class`, a tag such as `path`, `*`, combinations like `g.wing`, "inside" with a space (`"#bird path"`), and several separated by commas.
+
+### Properties
+
+Every property except `origin`, `fill` and `stroke` takes a number or an expression.
+
+| property | |
+|---|---|
+| `x`, `y` | Move, in % of the drawing's size |
+| `rotate` | Turn, in degrees |
+| `scale`, `sx`, `sy` | Size, overall or one direction, 1 = as drawn |
+| `skew` | Slant, in degrees |
+| `origin` | What it turns and scales around: `center` (default), `top`, `bottom left`, `"50% 100%"` (of its own box) or `"120 45"` (SVG units) |
+| `opacity` | 0–1 |
+| `fill`, `stroke` | Any CSS colour, a palette colour (`accent`, `text`, `bg`, `color1`, `color2`…), `none`, or (for `stroke`) `fill` for the shape's own fill colour |
+| `outline` | Stroke width, 1 = as drawn. Shapes without a stroke get a thin one |
+| `hue` | Shift the colours round the colour wheel, in degrees |
+| `glow`, `blur` | In px at 1080p |
+| `draw` | Draw the outline on, 0 → 1. The fill fades in at the end |
+| `trace` | A bright spark running round the outline, 0 → 1 is one lap (`bar` runs one lap per bar) |
+| `jitter` | Wobbly edges, in % of the drawing's size |
+| `explode` | On a group, its children fly apart from its centre; on a shape, its separate pieces do. 1 = twice as far |
+| `echo` | Ripples of the outline spreading out, 0 → 1 |
+| `split` | Red/blue split, in % of the drawing's size |
+
+Properties set on a group carry down to the shapes inside it (`glow`, `draw`, `jitter`, `fill` and so on, while a shape's own setting wins), and moves stack: a rotating wheel's spokes can spin on top of it.
+
+**Expressions** can use everything `-P` can (`bass`, `kick`, `pulse`, `beat`, `bar`, `time`, the LFOs, automation; see `--list-fx`), the style's numeric settings (`amount`, `intro`, and a pack's own), and five variables of their own, worked out for each shape:
+
+| variable | |
+|---|---|
+| `band` | The shape's frequency band, 0 (as quiet as that band gets in the clip) to 1 (as loud). For a selector matching several shapes, they share out the spectrum in order: the first gets the bass, the last the highs. Otherwise a shape uses its part's band |
+| `i`, `n` | Which match this is (from 0) and how many there are, e.g. `"rotate": "i/n*360 + bar*90"` |
+| `rand` | A fixed random number 0–1 for this shape, to make each one a little different (`--seed` changes it) |
+| `t` | Seconds since this scene started, for intros (`"draw": "clamp(t/2)"`) |
+
+### What gets drawn
+
+Paths, rectangles, circles, ellipses, lines, polylines and polygons, in groups and `<use>` copies. Colours come from attributes, `style=""` and `<style>` blocks, and linear and radial gradients work. Text has to be converted to outlines first (Figma: Outline stroke / Flatten; Illustrator: Create Outlines; Inkscape: Object to Path), and embedded images, masks, clip paths, patterns and filters are left out (viz says so when it finds them).
+
+It goes with everything else: titles, `--fx`, `-g`, `--ascii`, `--loop`, `--hook`, `--watch` (which re-renders when the SVG or the pack changes), `--random` (a preset for a plain SVG; the pack's own settings for a pack) and batch files (an `svg` column). Several `--svg` flags give several drawing styles for `--scene`. The demo files [docs/logo.svg](docs/logo.svg) and [docs/demo.svg](docs/demo.svg) + [docs/demo.viz.json](docs/demo.viz.json) are free to try.
+
+---
+
 ## ASCII mode: `--ascii`
 
 `--ascii` redraws any style (or scene chain) as greyscale ASCII art. Each frame is split into a grid of character cells, and each cell's brightness picks a character from ` .:-=+*#%@` and a matching grey. It goes on top of everything: styles, scene transitions, cover art. Titles stay as crisp text above it. The background is detected per frame and left as empty black, so only the visual itself turns into characters.
@@ -1120,7 +1261,7 @@ viz track.wav --start 1:00 -d 8 -s vines --loop 3    # longer, softer join
 viz track.wav -s mystyle --watch --open
 ```
 
-Renders a preview, then waits. Each time you save a file in `src/` (a style, `sea.js`, …), the track, the cover, the image or the drum stem, it renders again in a fresh process, so your edits are picked up. With `--open`, it closes the old version in QuickTime (which wouldn't notice the file changed) and opens the new one. Saving again mid-render restarts it. `--watch` always renders with `--preview`. Stop with ctrl+c.
+Renders a preview, then waits. Each time you save a file in `src/` (a style, `sea.js`, …), the track, the cover, the image, the SVG (or its pack) or the drum stem, it renders again in a fresh process, so your edits are picked up. With `--open`, it closes the old version in QuickTime (which wouldn't notice the file changed) and opens the new one. Saving again mid-render restarts it. `--watch` always renders with `--preview`. Stop with ctrl+c.
 
 ### `--random`: find new looks
 
@@ -1161,7 +1302,7 @@ viz campaign.csv --preview    # options given here apply to every row; a row's o
 ```
 
 - Columns use the long option names (`style`, `start`, `duration`, `title`, `format`, `cover`, `fx`, `hook`, `loop`, `open`, …). An empty cell means "not set".
-- Paths (`input`, `cover`, `output`, `drums`) are relative to the batch file.
+- Paths (`input`, `cover`, `image`, `svg`, `output`, `drums`) are relative to the batch file.
 - In a CSV, separate several `param` or `scene` values with `;`. For switches, `yes`/`no` work (`fade` = `no` gives `--no-fade`).
 - A row that fails doesn't stop the rest. The summary at the end lists any failures.
 
@@ -1333,6 +1474,18 @@ viz track.wav --image photo.jpg -P preset=shatter --hook   # shatters on every b
 viz track.wav --image photo.jpg -P preset=clean -P rgb=1.5 -P slices=1   # build your own
 viz track.wav --image photo.jpg -p blood -P tint=0.9 -g    # stark, inked look
 viz track.wav --image photo.jpg -s occult --scene +8=photo,preset=melt,transition=glitch   # sigil, then the photo melting
+
+# SVG mode
+viz track.wav --svg logo.svg                               # pump: parts swell and glow with their bands
+viz track.wav --svg logo.svg -P preset=explode --hook      # flies apart on every kick of the drop
+viz track.wav --svg logo.svg -P preset=wire -p acid --fx bloom   # neon outlines
+viz track.wav --svg logo.svg -P preset=glitch --fx vhs     # glitch tape
+viz track.wav --svg logo.svg -P colors=palette -p vapor    # recoloured in a palette
+viz track.wav --svg logo.svg -P intro=6 -P amount=0.5      # slow draw-on, gentle
+viz track.wav --svg logo.viz.json -P spin=1+bass           # a pack, its own settings following the bass
+viz track.wav -s temple --svg logo.svg --scene +8=svg,transition=flash   # the temple, then your logo on the drop
+viz track.wav --svg logo.svg --svg band.viz.json --scene +6=band   # logo, then a second drawing
+viz --svg logo.svg --list-layers                           # what's in it, and what you can rig
 
 # ASCII
 viz track.wav -s wave --ascii                              # any style as ASCII art

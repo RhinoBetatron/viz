@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- viz demo drawing: the sun-eye. Rigged by demo.viz.json (and one data-viz below). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <radialGradient id="iris-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#0b3b3a"/>
+      <stop offset="0.55" stop-color="#1fa59a"/>
+      <stop offset="1" stop-color="#0e5d58"/>
+    </radialGradient>
+    <style>
+      .ray { fill: #f5c542; }
+      .ray.long { fill: #ffdc73; }
+      .star { fill: #fff6dd; }
+    </style>
+  </defs>
+  <g id="stars" data-viz="glow: 4+high*30">
+    <path class="star" d="M52 47 Q52 60 65 60 Q52 60 52 73 Q52 60 39 60 Q52 60 52 47 Z"/>
+    <path class="star" d="M350 39 Q350 48 359 48 Q350 48 350 57 Q350 48 341 48 Q350 48 350 39 Z"/>
+    <path class="star" d="M362 316 Q362 330 376 330 Q362 330 362 344 Q362 330 348 330 Q362 330 362 316 Z"/>
+    <path class="star" d="M40 335 Q40 345 50 345 Q40 345 40 355 Q40 345 30 345 Q40 345 40 335 Z"/>
+    <path class="star" d="M300 104 Q300 110 306 110 Q300 110 300 116 Q300 110 294 110 Q300 110 300 104 Z"/>
+    <path class="star" d="M95 274 Q95 280 101 280 Q95 280 95 286 Q95 280 89 280 Q95 280 95 274 Z"/>
+    <path class="star" d="M200 377 Q200 385 208 385 Q200 385 200 393 Q200 385 192 385 Q200 385 200 377 Z"/>
+    <path class="star" d="M205 11 Q205 18 212 18 Q205 18 205 25 Q205 18 198 18 Q205 18 205 11 Z"/>
+  </g>
+  <g id="rays">
+    <path class="ray long" transform="rotate(0 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(22.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(45 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(67.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(90 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(112.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(135 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(157.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(180 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(202.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(225 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(247.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(270 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(292.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+    <path class="ray long" transform="rotate(315 200 200)" d="M189 82 L200 10 L211 82 Z"/>
+    <path class="ray" transform="rotate(337.5 200 200)" d="M193 82 L200 35 L207 82 Z"/>
+  </g>
+  <circle id="ring" cx="200" cy="200" r="104" fill="none" stroke="#f5c542" stroke-width="6"/>
+  <g id="eye">
+    <path id="lids" d="M118 200 Q200 128 282 200 Q200 272 118 200 Z" fill="#f4efe6" stroke="#f5c542" stroke-width="4"/>
+    <circle id="iris" cx="200" cy="200" r="30" fill="url(#iris-glow)"/>
+    <circle id="pupil" cx="200" cy="200" r="12" fill="#06100f"/>
+  </g>
+</svg>

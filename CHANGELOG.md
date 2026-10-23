@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### SVG mode
+- **`--svg logo.svg`** moves a drawing with the music, shape by shape. It picks the drawing's style on its own, or works as a scene (`--scene +8=svg`) next to any other style. `--svg` can be given several times, one style per drawing.
+- Presets for any SVG, with no setup:
+  - `pump` (the default): each part swells and glows with its own frequency band
+  - `explode`: parts fly apart and spin on the kicks
+  - `wire`: neon outlines with sparks running round them
+  - `glitch`: jumps, red/blue split and flicker
+- The parts draw themselves on at the start (`-P intro`). Dark drawings are flipped to light so they show up on the dark background (`-P colors`).
+- **`data-viz` attributes** rig a drawing from inside the SVG: `data-viz="rotate: beat*360; glow: high*20"`.
+- **Pack files** (`logo.viz.json`) rig a drawing from outside it and turn it into a style of its own. A pack has a name, description and palette, and declares **its own settings** with defaults, limits and descriptions. Those settings show up in `--list-styles` and take `-P` like any built-in setting. Layers are picked with CSS-like selectors (`#id`, `.class`, `"#group path"`). `logo.svg` picks up `logo.viz.json` next to it.
+- 20 properties per shape or group:
+  - moving: `x`, `y`, `rotate`, `scale`, `sx`, `sy`, `skew`, `origin`
+  - look: `opacity`, `fill`, `stroke`, `outline`, `hue`, `glow`, `blur`
+  - drawing and breaking apart: `draw`, `trace`, `jitter`, `explode`, `echo`, `split`
+- Their values are `-P` expressions, plus per-shape variables: `band`, `i`, `n`, `rand`, `t`.
+- `--list-layers` shows what's in a drawing (its groups, its parts and their bands) and everything a pack can set.
+- Reads paths, basic shapes, groups and `<use>`, with colours from attributes, `style=""` and `<style>` blocks, and linear and radial gradients. Text, images, masks and clip paths are left out, with a note.
+- Works with titles, `--fx`, `-g`, `--ascii`, `--loop`, `--hook`, `--watch` (which also watches the SVG and pack), `--random` and batch files (an `svg` column).
+- Demo files: `docs/logo.svg`, plus `docs/demo.svg` with `docs/demo.viz.json`.
+
 ## 0.4 (2026-10-22)
 
 ### Photo mode

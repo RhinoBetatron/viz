@@ -52,7 +52,10 @@ const TOKEN = /\s*(?:(\d*\.?\d+(?:e[+-]?\d+)?)|([a-z_]\w*)|(\*\*|[-+*/%^(),]))/g
 
 // Returns { fn, uses } for an expression or automation, or null when the
 // value is just a word. Throws on something that looks like one but can't be.
-export function compile(text) {
+// `names` are extra variables it may use (an SVG pack's params, a shape's
+// band…), handed to fn(frame, vars) on each call. With `constant`, numbers and
+// sums like 2*3 count as expressions too instead of being rejected.
+export function compile(text, { names = [], constant = false } = {}) {
   if (typeof text !== 'string') return null;
   const src = text.trim();
   if (src.includes('=')) return compileKeyframes(src);
@@ -64,16 +67,21 @@ export function compile(text) {
     if (!m || m.index !== start) return null; // other characters: not an expression
     tokens.push(m[1] ? { num: m[1] } : m[2] ? { id: m[2] } : { op: m[3] });
   }
+  const extra = new Set(names);
   const ids = tokens.filter((t) => t.id).map((t) => t.id);
   const used = ids.filter((id) => id in signals);
-  const moving = used.length || ids.some((id) => id in shapes);
-  if (!moving) {
+  const vars = [...new Set(ids.filter((id) => extra.has(id) && !(id in signals)))];
+  const moving = used.length || vars.length || ids.some((id) => id in shapes);
+  if (!moving && !constant) {
     // "eye" or "triple-moon" is a word; "1+bas*2" is a typo worth pointing out.
     if (tokens.some((t) => t.num || (t.op && t.op !== '-'))) throw new Error(`"${src}" doesn't use any of: ${[...Object.keys(signals), ...lfos].join(', ')}`);
     return null;
   }
-  const unknown = ids.filter((id) => !(id in signals) && !(id in helpers) && !(id in shapes));
-  if (unknown.length) throw new Error(`unknown name "${unknown[0]}" in "${src}". Signals: ${Object.keys(signals).join(', ')}. LFOs: ${lfos.join(', ')}`);
+  const unknown = ids.filter((id) => !(id in signals) && !(id in helpers) && !(id in shapes) && !extra.has(id));
+  if (unknown.length) {
+    const more = names.length ? `. Also: ${names.join(', ')}` : '';
+    throw new Error(`unknown name "${unknown[0]}" in "${src}". Signals: ${Object.keys(signals).join(', ')}. LFOs: ${lfos.join(', ')}${more}`);
+  }
 
   const js = tokens.map((t) => t.num ?? (t.id ? `$.${t.id}` : t.op === '^' ? '**' : t.op)).join(' ');
   // The LFOs read the bar position of whichever frame is being evaluated.
@@ -84,21 +92,25 @@ export function compile(text) {
   let fn;
   try {
     fn = new Function('$', `return (${js});`);
-    fn({ ...scope, ...Object.fromEntries(Object.keys(signals).map((k) => [k, 0])) });
+    fn({ ...scope, ...Object.fromEntries([...Object.keys(signals), ...vars].map((k) => [k, 0])) });
   } catch {
     throw new Error(`can't read "${src}" as an expression (try e.g. 1+bass*2 or 1+2*sine(4))`);
   }
-  const names = [...new Set(used)];
+  const sigs = [...new Set(used)];
   return {
-    uses: names,
-    fn: (frame) => {
+    uses: [...sigs, ...vars],
+    fn: (frame, values) => {
       scope.bars = frame.bars ?? frame.time / 2;
-      for (const k of names) scope[k] = signals[k](frame);
+      for (const k of sigs) scope[k] = signals[k](frame);
+      for (const k of vars) scope[k] = values?.[k] ?? 0;
       const v = fn(scope);
       return Number.isFinite(v) ? v : 0;
     },
   };
 }
+
+// Names an expression can't take for its own variables.
+export const reserved = new Set([...Object.keys(signals), ...Object.keys(helpers), ...Object.keys(shapes)]);
 
 // Automation: "0:50=0.5 0:55.8=3 1:10=1". Times are track times like --scene
 // (a leading + means seconds into the clip). The value ramps in a straight

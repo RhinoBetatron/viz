@@ -1,0 +1,20 @@
+{
+  "svg": "demo.svg",
+  "name": "sun-eye",
+  "description": "The sun-eye emblem: rays that turn and flare with the bass, an eye that blinks on the kicks and watches the highs",
+  "palette": "ember",
+  "params": {
+    "spin": { "default": 0.25, "min": -2, "max": 2, "description": "turns of the rays per bar" },
+    "flare": { "default": 1, "min": 0, "max": 3, "description": "how far the rays shoot out with their band" },
+    "blink": { "default": 1, "min": 0, "max": 1, "description": "how far the eye shuts on a kick" }
+  },
+  "layers": {
+    "#rays": { "rotate": "bar*360*spin", "glow": "10+bass*40" },
+    ".ray": { "sy": "1+band*flare*0.9", "origin": "50% 100%" },
+    "#ring": { "draw": "clamp(t/2)", "outline": "1+bass*2", "echo": "pulse" },
+    "#eye": { "sy": "1-pulse^3*blink*0.9", "scale": "1+bass*0.08" },
+    "#iris": { "scale": "1+mid*0.35", "x": "(noise(1, 0)-0.5)*6", "y": "(noise(1, 0.5)-0.5)*3" },
+    "#pupil": { "scale": "1.5-high*1.1" },
+    ".star": { "scale": "0.5+band*1.2", "rotate": "beat*90", "opacity": "0.35+band" }
+  }
+}
