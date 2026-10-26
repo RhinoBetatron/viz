@@ -26,6 +26,12 @@ export default {
   name: 'vines',
   description: 'Saturated green vines creep in from the edges and wrap around each other, sprouting leaves, tendrils and blooms with the music',
   palette: 'verdant', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { growth: 0.7, branch: 0.5, blooms: 0.5, glow: 0.85 },
+    build: { growth: 0.9 },
+    drop: { growth: 1.3, branch: 1.6, blooms: 1.5, glow: 1.3 },
+  },
   params: {
     vines: 7,        // main vines growing at once
     growth: 1,       // growth speed (scaled by loudness)

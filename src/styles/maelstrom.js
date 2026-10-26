@@ -10,6 +10,12 @@ export default {
   name: 'maelstrom',
   description: 'A whirlpool seen from above: spiral currents carrying the waveform race inwards faster as the track gets louder, dragging wreckage and a ghost ship down, and the eye tears open on kicks',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { speed: 0.7, tear: 0.5, wave: 0.7, spray: 0.5 },
+    build: { speed: 0.9 },
+    drop: { speed: 1.4, tear: 1.5, wave: 1.3, spray: 1.6 },
+  },
   params: {
     arms: 9,        // spiral currents
     twist: 1,       // how tightly the arms wind

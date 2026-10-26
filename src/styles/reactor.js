@@ -24,6 +24,12 @@ export default {
   name: 'reactor',
   description: 'A reactor core in a hazard-lit hall: control rods slam in on every kick as the core flares, coolant races through the pipes, gauges swing and warning beacons turn',
   palette: 'hazard', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { slam: 0.5, flare: 0.6, geiger: 0.6 },
+    build: { slam: 0.9 },
+    drop: { slam: 1.4, flare: 1.6, geiger: 1.5 },
+  },
   params: {
     scale: 1,       // size of the reactor
     rods: 7,        // control rods (2–12)

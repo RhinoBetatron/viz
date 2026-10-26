@@ -117,6 +117,12 @@ export default {
   name: 'rhino',
   description: 'A rhino silhouetted against a huge savanna sun: it trots in time with the beat, charges and headbutts on the kicks, kicking up dust, while the sun\'s rays play the spectrum',
   palette: 'savanna', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { trot: 0.7, charge: 0.4, dust: 0.5, glow: 0.85 },
+    build: { trot: 0.9 },
+    drop: { trot: 1.2, charge: 1.5, dust: 1.5, glow: 1.3 },
+  },
   params: {
     size: 1,        // size of the rhino
     trot: 1,        // how much it trots in time with the beat (0 = stands still)

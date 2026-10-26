@@ -138,6 +138,7 @@ program
   .option('--analyze', 'find the sections of the track (intro, drops, breakdowns…) and suggest scene changes, without rendering')
   .option('--auto [styles]', 'switch styles automatically at the detected sections: calm,drop[,build] (default vines,occult, or the -s style throughout)')
   .option('--hook [lead]', 'start the clip just before the biggest drop (lead = seconds before it, default 2)', optionalNumber('--hook'))
+  .option('--no-auto-params', "with --auto, keep each style's settings fixed instead of following the sections")
   .option('--min-section <bars>', 'shortest section --auto, --analyze and --hook will find, in bars', Number, 4)
   .option('--drums <file>', 'drum stem: kicks and hits come from it, everything else from the main track')
   .option('--fx <list>', `post-effects with optional amounts, e.g. bloom,chroma=2: ${Object.keys(effects).join(', ')}`, parseFx)
@@ -328,6 +329,7 @@ async function main(input, opts) {
       title: opts.title, subtitle: opts.subtitle, font: opts.font,
       fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, hw: opts.hw, grayscale: opts.grayscale, grain: opts.grain,
       fx: opts.fx, loop, drums: opts.drums, grid: structure?.grid,
+      sections: opts.auto && opts.autoParams ? structure.sections : undefined,
       onStage: (s) => s !== 'Rendering' && console.error(`  ${s}…`),
       onProgress: progressBar,
     });

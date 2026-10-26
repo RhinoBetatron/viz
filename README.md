@@ -498,6 +498,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--fx <list>` | Post-effects with optional strengths: `bloom` `chroma` `vhs` `scanlines` `vignette` `shake`, e.g. `bloom,shake=2`, see [--fx](#post-effects---fx) | |
 | `--loop [sec]` | Seamless loop: crossfade the end into the start, length rounded to whole bars, see [--loop](#seamless-loops---loop) | off (`1.5` when given) |
 | `--transition <type>` | `fade`, `black`, `flash`, `cut`, `wipe`, `zoom`, `glitch`, `kick`, see [transitions](#scenes-blending-between-styles) | `fade` |
+| `--no-auto-params` | With `--auto`, keep each style's settings fixed instead of following the sections | |
 | `--min-section <bars>` | Shortest section `--analyze`, `--auto` and `--hook` will find. Raise it if short bits (a click at the start, a fill) become sections | `4` |
 | `--snap <unit>` | Move `--scene` times onto the nearest `bar` (or `beat`) of the [beat grid](#the-beat-grid) | |
 | `--fps <n>` | Frame rate (`60` = smoother, takes twice as long) | `30` |
@@ -1359,6 +1360,8 @@ viz track.wav -d all -s vines \
 
 **`--auto calm,drop[,build]`** renders it directly. The default is `vines,occult`, unless you pass `-s`: then that style runs through the whole track (`--auto -s lilguys`). Each style can carry a palette (`wave/steel`). Drops come in with a `flash`, and everything else crossfades (3s, or 2s into a build). Set `--transition` or `--blend` to override that. `-P` settings apply to every scene. Neighbouring sections that get the same style just carry on, so there's no transition between them.
 
+**Settings follow the sections too.** Each style turns its settings down in calm parts, ramps them up through a build and turns them up on the drops. `lilguys` dance harder and fire confetti on drops, `occult` spins faster and glows brighter, the `rhino` charges harder, and so on. A single style (`--auto -s lilguys`) still changes with the track this way. Your own `-P` values and expressions get scaled the same way (`-P dance=2` is 2 at the default level, more on the drops). Settings you automate by hand with time=value points stay as you wrote them. `--no-auto-params` turns it off. Styles say how they scale in a `sections` map (see [Adding your own style](#adding-your-own-style)): multipliers per kind of section, e.g. `drop: { glow: 1.5 }`.
+
 **Tips:**
 - Use `--analyze` first. The printed command is a good starting point: copy it, adjust a time, or add per-scene settings (`symbol=inverted`, `pregrow=0`…).
 - With `--start`/`-d`, `--auto` only uses the changes inside that window, and opens on the style for whatever section the clip starts in.
@@ -1822,6 +1825,7 @@ export default {
   description: 'What it looks like',
   params: { size: 1 },                  // become -P size=2 etc.
   palette: 'blood',                     // optional default palette when no -p is given
+  sections: { calm: { size: 0.7 }, drop: { size: 1.4 } }, // optional: how --auto scales settings per section
 
   setup(ctx, env) {},                   // optional, runs once before frame 1
 

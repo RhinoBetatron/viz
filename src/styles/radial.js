@@ -4,6 +4,12 @@ import { sampleSpectrum, drawCover } from '../util.js';
 export default {
   name: 'radial',
   description: 'Circular spectrum around the cover art (or a glowing orb), pulsing on the kick',
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { length: 0.8, spin: 0.7, glow: 0.7 },
+    build: { length: 0.9 },
+    drop: { length: 1.2, spin: 1.5, glow: 1.5 },
+  },
   params: {
     bars: 90,        // bars per half circle (mirrored left/right)
     radius: 0.23,    // inner radius as a fraction of canvas width/height (whichever is smaller)

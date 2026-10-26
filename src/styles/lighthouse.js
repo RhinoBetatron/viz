@@ -34,6 +34,12 @@ export default {
   name: 'lighthouse',
   description: 'A lighthouse on a rock in a night sea: its sweeping beam pulses with the music and the waves crash into the rock on every kick',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { light: 0.8, spin: 0.8, crash: 0.5, fog: 1.3 },
+    build: { spin: 1 },
+    drop: { light: 1.3, spin: 1.3, crash: 1.6, fog: 0.7 },
+  },
   params: {
     size: 1,        // size of the rock and lighthouse
     light: 1,       // beam brightness

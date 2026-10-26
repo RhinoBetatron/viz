@@ -61,6 +61,12 @@ export default {
   name: 'svg',
   presets: svgPresets,
   description: 'Your SVG (--svg logo.svg), moved, recoloured and broken apart with the music. Presets for any drawing; rig it yourself with data-viz attributes or a pack file (see the README)',
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { amount: 0.6 },
+    build: { amount: 0.85 },
+    drop: { amount: 1.4 },
+  },
   params: {
     preset: 'pump',   // pump, explode, wire, glitch or none: how the main parts move (none for drawings you've rigged yourself)
     amount: 1,        // how hard the preset hits

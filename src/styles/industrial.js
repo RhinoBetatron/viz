@@ -47,6 +47,12 @@ export default {
   name: 'industrial',
   description: 'Interlocking gears that ratchet on the kick, hydraulic pistons, LED meters, sparks and hazard stripes',
   palette: 'hazard', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { speed: 0.6, ratchet: 0.6, sparks: 0.4, shake: 0.4 },
+    build: { speed: 0.9 },
+    drop: { speed: 1.4, sparks: 1.6, shake: 1.4 },
+  },
   params: {
     scale: 1,          // size of the gear assembly
     speed: 0.06,       // gear rotation in turns per second (scaled by loudness)

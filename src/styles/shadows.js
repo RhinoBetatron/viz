@@ -31,6 +31,12 @@ export default {
   name: 'shadows',
   description: 'Shadowy hands reach in from the left and right out of the dark, grasping on every kick, wrapped in drifting gloom and smoke with a faint light between them',
   palette: 'gloom', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { reach: 0.85, grip: 0.6, rim: 0.7, gloom: 1.3 },
+    build: { reach: 0.95 },
+    drop: { reach: 1.15, grip: 1.5, tremble: 1.3, rim: 1.4, gloom: 0.8 },
+  },
   params: {
     hands: 3,       // hands on each side
     reach: 1,       // how far they reach in

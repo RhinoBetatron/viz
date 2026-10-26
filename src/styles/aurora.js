@@ -32,6 +32,12 @@ export default {
   name: 'aurora',
   description: 'Aurora curtains rippling over a mountain fjord, each fold rising with its slice of the spectrum and mirrored in the still water',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { height: 0.8, shimmer: 0.7, speed: 0.7, flare: 0.5 },
+    build: { height: 0.95 },
+    drop: { height: 1.2, shimmer: 1.4, speed: 1.3, flare: 1.6 },
+  },
   params: {
     curtains: 3,    // aurora bands (1–5)
     height: 1,      // how tall the curtains reach

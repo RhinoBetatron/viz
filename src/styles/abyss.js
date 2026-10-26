@@ -10,6 +10,12 @@ export default {
   name: 'abyss',
   description: 'Under the sea: glowing jellyfish swim on the kicks under a surface made of the waveform, light shafts shimmer and a wreck rests on the floor',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { swim: 0.6, bubbles: 0.5, surface: 0.7 },
+    build: { swim: 0.9, bubbles: 0.9 },
+    drop: { swim: 1.5, bubbles: 1.6, surface: 1.3 },
+  },
   params: {
     jellies: 7,     // jellyfish (0–14)
     size: 1,        // jellyfish size

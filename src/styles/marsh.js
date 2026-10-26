@@ -9,6 +9,12 @@ export default {
   name: 'marsh',
   description: 'A swamp at night: will-o\'-wisps drift over black water, flaring on kicks and blinking away on transients, among dead trees, hanging moss and reeds swaying with the mids',
   palette: 'verdant', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { blink: 0.5, ripples: 0.6, fog: 1.3 },
+    build: { blink: 0.9 },
+    drop: { blink: 1.5, ripples: 1.5, fog: 0.8 },
+  },
   params: {
     wisps: 7,       // will-o'-wisps (0–14)
     blink: 1,       // how often wisps vanish and reappear elsewhere on transients (0 = never)

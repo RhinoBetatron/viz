@@ -20,6 +20,12 @@ export default {
   name: 'ghostship',
   description: 'A translucent ghost galleon rocking on a moonlit sea whose surface is the soundwave itself',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { rock: 0.7, flicker: 0.4, echo: 0.5, spray: 0.5, fog: 1.3, lightning: 0.3 },
+    build: { rock: 0.9, flicker: 0.8 },
+    drop: { rock: 1.3, flicker: 1.5, echo: 1.5, spray: 1.6, fog: 0.8, lightning: 2 },
+  },
   params: {
     size: 1,        // ship size
     rock: 1,        // how much the ship pitches and bobs with the waves

@@ -58,6 +58,12 @@ export default {
   name: 'pegasus',
   description: 'Pegasus flying over a sea of clouds towards Olympus, wings beating in time with the beat, while Zeus throws lightning on the kicks and the cloud tops rise with the spectrum',
   palette: 'olympus', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { speed: 0.8, sparkle: 0.6, glow: 0.85, lightning: 0.3 },
+    build: { speed: 1 },
+    drop: { speed: 1.3, clouds: 1.2, sparkle: 1.5, glow: 1.3, lightning: 1.8 },
+  },
   params: {
     flap: 0.5,      // wing beats per beat (0.5 = one every two beats)
     size: 1,        // size of the horse

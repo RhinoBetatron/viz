@@ -4,6 +4,12 @@ import { sampleWaveform, flatten } from '../util.js';
 export default {
   name: 'wave',
   description: 'Neon oscilloscope line with motion trails and colour-split echoes',
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { amp: 0.75, split: 0.7 },
+    build: { amp: 0.9 },
+    drop: { amp: 1.2, split: 1.5 },
+  },
   params: {
     amp: 0.22,       // amplitude as a fraction of canvas height
     lines: 3,        // number of colour-split copies (1 = single line)

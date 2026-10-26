@@ -10,6 +10,12 @@ export default {
   name: 'gallows',
   description: 'Grey hands reach up out of a stormy sea towards a sinking mast, its yard hung with a swaying noose, clutching at it on every kick while crows circle',
   palette: 'gloom', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { reach: 0.8, grip: 0.6, fog: 1.3, lightning: 0.3 },
+    build: { reach: 0.95 },
+    drop: { reach: 1.2, grip: 1.5, tremble: 1.4, fog: 0.8, lightning: 1.8 },
+  },
   params: {
     hands: 6,       // hands reaching out of the water (0–10)
     reach: 1,       // how far they rise out of the water

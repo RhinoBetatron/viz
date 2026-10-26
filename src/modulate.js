@@ -151,3 +151,42 @@ export function compileParams(params) {
   }
   return mods;
 }
+
+// --auto: style settings that follow the track's sections. A style lists
+// multipliers for its settings per kind of section, e.g.
+//   sections: { calm: { dance: 0.5 }, build: { dance: 0.9 }, drop: { dance: 1.4 } }
+// Calm parts (intro, breakdown, outro) hold the calm values; a build ramps up
+// from calm to its values across its length; a groove holds the build values;
+// a drop snaps in. Changes ease over a moment so nothing jumps, except into a
+// drop. Returns fn(trackTime) → { key: multiplier }, or null.
+const ROLE_OF = { drop: 'drop', build: 'build', groove: 'build' };
+const smooth = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+
+export function sectionMultipliers(profile, sections) {
+  if (!profile || !sections?.length) return null;
+  const keys = [...new Set(Object.values(profile).flatMap((p) => Object.keys(p)))];
+  if (!keys.length) return null;
+  const at = (role, k) => profile[role]?.[k] ?? 1;
+  // Each key's value inside section i at time t (no easing).
+  const inside = (i, k, t) => {
+    const s = sections[i];
+    if (s.label === 'build') {
+      const x = Math.min(1, Math.max(0, (t - s.start) / Math.max(1e-6, s.end - s.start)));
+      return at('calm', k) + (at('build', k) - at('calm', k)) * x;
+    }
+    return at(ROLE_OF[s.label] ?? 'calm', k);
+  };
+  return (t) => {
+    let i = sections.findLastIndex((s) => s.start <= t);
+    if (i < 0) i = 0;
+    const s = sections[i];
+    const ease = s.label === 'drop' ? 0.15 : 2;
+    const x = i > 0 ? smooth((t - s.start) / ease) : 1;
+    const out = {};
+    for (const k of keys) {
+      const now = inside(i, k, t);
+      out[k] = x >= 1 ? now : inside(i - 1, k, s.start) + (now - inside(i - 1, k, s.start)) * x;
+    }
+    return out;
+  };
+}

@@ -149,6 +149,12 @@ export default {
   name: 'lilguys',
   description: 'A crowd of little googly-eyed guys dancing quirky moves on a disco floor: they bounce, flap, robot and noodle to the beat, hop on the kicks and sync up for the drops',
   palette: 'party', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { dance: 0.45, hop: 0.3, confetti: 0, sync: 0, floor: 0.6, disco: 0.6 },
+    build: { dance: 0.85, hop: 0.7, confetti: 0.3, floor: 0.9, disco: 0.85 },
+    drop: { dance: 1.4, hop: 1.5, confetti: 1.6, sync: 2, floor: 1.3, disco: 1.25 },
+  },
   params: {
     guys: 14,       // how many lil guys (1–40)
     size: 1,        // size of the guys

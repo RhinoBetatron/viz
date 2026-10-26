@@ -3,6 +3,12 @@ import { rampAt, rgba } from '../palettes.js';
 export default {
   name: 'particles',
   description: 'Particle bursts fired on every onset, swirling with the mids around a pulsing orb',
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { burst: 0.5, ambient: 0.6, speed: 0.8 },
+    build: { burst: 0.9 },
+    drop: { burst: 1.6, speed: 1.3, swirl: 1.3 },
+  },
   params: {
     burst: 90,       // particles per onset (scaled by how hard it hits)
     ambient: 3,      // particles per frame emitted continuously, scaled by loudness

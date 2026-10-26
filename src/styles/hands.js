@@ -48,6 +48,12 @@ export default {
   name: 'hands',
   description: 'A grasping hand in the middle that clenches on every kick, with arms reaching in from the dark around it',
   palette: 'gloom', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { grip: 0.6, reach: 0.85, speed: 0.8, echo: 0.5 },
+    build: { reach: 0.95 },
+    drop: { grip: 1.5, reach: 1.15, speed: 1.3, tremble: 1.4, echo: 1.5 },
+  },
   params: {
     hands: 6,       // reaching hands around the edge (0 = only the centre hand)
     grip: 1,        // how hard the hands clench on kicks

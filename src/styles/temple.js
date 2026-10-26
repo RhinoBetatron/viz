@@ -17,6 +17,12 @@ export default {
   name: 'temple',
   description: 'A Greek temple by moonlight: its column drums split apart on every kick with light pouring out of the cracks, the columns fill with light like a spectrum, braziers flare and a meander frieze runs with the beat',
   palette: 'aegean', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { split: 0.4, fill: 0.7, light: 0.8, fire: 0.8 },
+    build: { fill: 0.9 },
+    drop: { split: 1.5, fill: 1.3, light: 1.3, fire: 1.3 },
+  },
   params: {
     columns: 6,     // number of columns (2–12)
     order: 'doric', // doric (plain capitals) or ionic (scrolled capitals, moulded bases)

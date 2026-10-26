@@ -23,6 +23,12 @@ export default {
   name: 'drowned',
   description: 'A sunken chapel under a blood-red sea: a sigil burns in the rose window, candles flicker on the altar underwater and runes light up with the spectrum',
   palette: 'blood', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { flame: 0.8, glow: 0.7, bubbles: 0.5 },
+    build: { glow: 0.9 },
+    drop: { flame: 1.3, glow: 1.5, bubbles: 1.5, runes: 1.2 },
+  },
   params: {
     symbol: 'pentagram', // pentagram inverted hexagram heptagram octagram eye leviathan triplemoon cycle
     cycle: 8,       // with symbol=cycle: kicks between symbol changes

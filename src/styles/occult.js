@@ -9,6 +9,12 @@ export default {
   name: 'occult',
   description: 'Glowing sigil inside a rotating rune circle, with occult symbols flickering in the dark',
   palette: 'blood', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { spin: 0.6, glow: 0.8, echo: 0.5, flicker: 0.7 },
+    build: { spin: 1 },
+    drop: { spin: 1.5, glow: 1.4, echo: 1.5, flicker: 1.3 },
+  },
   params: {
     symbol: 'pentagram', // pentagram inverted hexagram heptagram octagram eye leviathan triplemoon cycle
     cycle: 8,            // with symbol=cycle: how many kicks (or beats / bars, see `on`) between symbol changes

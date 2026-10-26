@@ -10,6 +10,12 @@ export default {
   name: 'kraken',
   description: 'Tentacles rise out of a night sea made of the waveform, coiling with the music and lashing on every kick, while a great eye surfaces on the drops',
   palette: 'spectral', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { rise: 0.75, lash: 0.5, fog: 1.3, lightning: 0.4 },
+    build: { rise: 0.95, lash: 0.9 },
+    drop: { rise: 1.15, lash: 1.5, writhe: 1.3, fog: 0.8, lightning: 2 },
+  },
   params: {
     tentacles: 7,   // how many tentacles (0–12)
     size: 1,        // size of the tentacles and eye

@@ -5,6 +5,12 @@ import { sampleSpectrum } from '../util.js';
 export default {
   name: 'bars',
   description: 'Mirrored spectrum bars with a glow that hits on the kick',
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { height: 0.75, glow: 0.7 },
+    build: { height: 0.9 },
+    drop: { height: 1.2, glow: 1.5 },
+  },
   params: {
     bars: 48,        // number of bars per side
     gap: 0.35,       // gap between bars as a fraction of bar width

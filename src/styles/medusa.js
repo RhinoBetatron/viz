@@ -10,6 +10,12 @@ export default {
   name: 'medusa',
   description: 'Medusa\'s face on a bronze shield: her snakes sway with the music and strike on the kicks, and on the biggest hits her gaze flashes out and turns the birds to stone',
   palette: 'gorgon', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { strike: 0.4, sway: 0.8, gaze: 0, glow: 0.8 },
+    build: { strike: 0.8 },
+    drop: { strike: 1.5, sway: 1.3, gaze: 1.5, glow: 1.4 },
+  },
   params: {
     snakes: 14,   // snakes in her hair (4–24)
     strike: 1,    // how many snakes strike on each kick, and how far (0 = none)

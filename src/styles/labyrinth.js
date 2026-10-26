@@ -51,6 +51,12 @@ export default {
   name: 'labyrinth',
   description: 'The labyrinth from above: light runs through its corridors with the spectrum and floods out from the centre on every kick, while the minotaur charges through it, trailed by Ariadne\'s glowing thread',
   palette: 'minoan', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { speed: 0.7, charge: 0.5, waves: 0.5 },
+    build: { speed: 0.9 },
+    drop: { speed: 1.3, charge: 1.5, waves: 1.5, glow: 1.3 },
+  },
   params: {
     size: 1,      // size of the corridors (bigger = fewer, wider)
     speed: 1,     // how fast the minotaur roams

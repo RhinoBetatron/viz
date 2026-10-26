@@ -10,6 +10,12 @@ export default {
   name: 'hydra',
   description: 'The hydra rising from the swamp at Lerna, a serpent queen with flowing tresses: one head for each slice of the spectrum, snapping and spitting venom on the kicks, and on the biggest hits two new heads grow',
   palette: 'lerna', // used when no -p is given
+  // With --auto: settings scaled in calm parts, builds and drops (see modulate.js).
+  sections: {
+    calm: { snap: 0.5, sway: 0.8, mist: 1.3 },
+    build: { sway: 1 },
+    drop: { snap: 1.6, sway: 1.3, glow: 1.4, mist: 0.8 },
+  },
   params: {
     heads: 5,     // heads it starts with (1–9)
     max: 11,      // most heads it can grow (0 = never grows more)

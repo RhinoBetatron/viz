@@ -7,7 +7,7 @@ import { Canvas, loadImage } from 'skia-canvas';
 import { analyze } from './audio.js';
 import { trackGrid, tagFrames, BEATS_PER_BAR } from './beats.js';
 import { makeFx } from './fx.js';
-import { compileParams } from './modulate.js';
+import { compileParams, sectionMultipliers } from './modulate.js';
 import { palettes, paletteFromImage, rgba } from './palettes.js';
 import { drawCover, rng } from './util.js';
 
@@ -379,7 +379,7 @@ export async function render(opts) {
     input, output, width, height, fps = 30, start = 0, duration,
     cover: coverPath, image: imagePath, background, title, subtitle, scenes: sceneSpecs,
     fade: wantFade = true, crf = 16, preset = 'veryfast', hw = false, seed = 1, grayscale = false, grain, ascii = 0,
-    fx = {}, loop = 0, drums, grid: givenGrid,
+    fx = {}, loop = 0, drums, grid: givenGrid, sections,
     font = '"Helvetica Neue", Helvetica, Arial, sans-serif', gpu = false, onStage, onProgress,
   } = opts;
   const fade = wantFade && !loop; // a loop has no start or end to fade
@@ -462,6 +462,12 @@ export async function render(opts) {
     const palette = resolvePalette(spec.palette, { grayscale, style: spec.style, cover, image });
     const params = { ...spec.style.params, ...spec.params };
     const mods = compileParams(params);
+    // With --auto, the style's own section profile scales its settings (on top
+    // of -P values and expressions; settings automated by hand are left alone).
+    const base = { ...params };
+    const follow = sectionMultipliers(spec.style.sections, sections);
+    const handAutomated = new Set(Object.keys(params).filter((k) => typeof params[k] === 'string' && params[k].includes('=')));
+    const moving = new Set(mods.map(([k]) => k));
     for (const [k, fn] of mods) params[k] = fn(frames[0]);
     const env = {
       width, height, fps, u,
@@ -480,7 +486,7 @@ export async function render(opts) {
     const style = Object.create(spec.style);
     await style.setup?.(ctx, env);
     scenes.push({
-      ...spec, style, env, palette, mods,
+      ...spec, style, env, palette, mods, follow, base, handAutomated, moving,
       bg: makeBackground(createCanvas(width, height), palette, cover, bgMode),
     });
   }
@@ -488,6 +494,12 @@ export async function render(opts) {
   const drawScene = (c, scene, frame) => {
     const { env, palette, bg } = scene;
     for (const [k, fn] of scene.mods) env.params[k] = fn(frame);
+    if (scene.follow) {
+      for (const [k, m] of Object.entries(scene.follow(start + frame.time))) {
+        const b = scene.moving.has(k) ? env.params[k] : scene.base[k];
+        if (typeof b === 'number' && !scene.handAutomated.has(k)) env.params[k] = b * m;
+      }
+    }
     c.save();
     // Background breathes slightly with the kick.
     const zoom = 1 + 0.035 * frame.pulse;
