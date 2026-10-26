@@ -460,7 +460,15 @@ export async function render(opts) {
   const scenes = [];
   for (const [i, spec] of specs.sort((a, b) => a.time - b.time).entries()) {
     const palette = resolvePalette(spec.palette, { grayscale, style: spec.style, cover, image });
-    const params = { ...spec.style.params, ...spec.params };
+    // -P lilguys.size=2 goes to that style only, and wins over a plain size=…
+    const params = { ...spec.style.params };
+    const scoped = [];
+    for (const [k, v] of Object.entries(spec.params)) {
+      const dot = k.indexOf('.');
+      if (dot < 0) params[k] = v;
+      else if (k.slice(0, dot) === spec.style.name) scoped.push([k.slice(dot + 1), v]);
+    }
+    for (const [k, v] of scoped) params[k] = v;
     const mods = compileParams(params);
     // With --auto, the style's own section profile scales its settings (on top
     // of -P values and expressions; settings automated by hand are left alone).

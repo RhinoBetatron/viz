@@ -263,6 +263,10 @@ async function main(input, opts) {
   // Auto scenes only make sense over a whole track, unless a length (or a hook) was asked for.
   if ((opts.auto || opts.analyze) && opts.hook === undefined && opts.end === undefined && program.getOptionValueSource('duration') === 'default') duration = undefined;
   if (duration !== undefined && duration <= 0) program.error('--end must be after --start');
+  for (const k of Object.keys(opts.param)) {
+    const dot = k.indexOf('.');
+    if (dot >= 0 && !styles[k.slice(0, dot)]) program.error(`-P ${k}: "${k.slice(0, dot)}" isn't a style. Use style.setting, e.g. -P lilguys.size=2`);
+  }
   if (!(opts.minSection >= 1)) program.error('--min-section takes a number of bars, e.g. --min-section 8');
   if (opts.hw && process.platform !== 'darwin') program.error('--hw uses the Mac video encoder, so it only works on macOS');
   let preset = 'veryfast';

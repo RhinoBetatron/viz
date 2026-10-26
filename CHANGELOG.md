@@ -5,6 +5,7 @@
 ### Settings that follow the sections
 - With `--auto`, every style's settings follow the track's sections: toned down in calm parts, ramping up through builds, turned up on drops. A single style (`--auto -s lilguys`) now changes with the track instead of staying the same throughout. Works with your own `-P` values and expressions, which get scaled the same way. `--no-auto-params` turns it off.
 - Styles declare how they scale in a `sections` map of multipliers per kind of section.
+- **`-P style.setting=value`** sets a setting for one style only, for scenes and `--auto` with several styles: `-P lilguys.size=1.5 -P radial.glow=2`.
 
 ### Fixes
 - A bare `--auto` with `-s` uses that style through the whole track, instead of ignoring `-s` and rendering `vines,occult`.

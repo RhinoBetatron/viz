@@ -296,7 +296,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `-t, --title <text>` | Big title text | |
 | `--subtitle <text>` | Smaller spaced-out text under the title | |
 | `--font <family>` | Font for the title and subtitle (any installed font) | Helvetica Neue |
-| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below. The value can follow the music (`-P "glow=1+pulse*3"`), an LFO (`-P "glow=1+2*sine(4)"`) or automation (`-P "glow=0:50=0.5 1:05=3"`), see [audio-driven settings](#audio-driven-settings--p-keyexpression) | |
+| `-P, --param <k=v>` | Tweak a style setting (repeatable), see below. The value can follow the music (`-P "glow=1+pulse*3"`), an LFO (`-P "glow=1+2*sine(4)"`) or automation (`-P "glow=0:50=0.5 1:05=3"`), see [audio-driven settings](#audio-driven-settings--p-keyexpression). With several styles, each uses the settings it has; `-P lilguys.size=2` sets one style's only | |
 | `--scene <time=style…>` | Switch to another style at a point in the track (repeatable), see [Scenes](#scenes-blending-between-styles) | |
 | `--blend <sec>` | How long scene transitions take | `2` (`0.8` for flash and zoom, `0.6` for glitch, `1.2` for wipe) |
 | `--analyze` | Find the track's sections (intro, drop, breakdown, build, outro) and print a `--scene` command for them. Doesn't render. See [Automatic sections](#automatic-sections---analyze----auto) | |
@@ -1119,7 +1119,7 @@ viz track.wav -d all -s vines \
 | `groove` | medium energy between drops | build (calm if not given) |
 | `outro` | after the last drop | calm |
 
-**`--auto calm,drop[,build]`** renders it directly. The default is `vines,occult`, unless you pass `-s`: then that style runs through the whole track (`--auto -s lilguys`). Each style can carry a palette (`wave/steel`). Drops come in with a `flash`, and everything else crossfades (3s, or 2s into a build). Set `--transition` or `--blend` to override that. `-P` settings apply to every scene. Neighbouring sections that get the same style just carry on, so there's no transition between them.
+**`--auto calm,drop[,build]`** renders it directly. The default is `vines,occult`, unless you pass `-s`: then that style runs through the whole track (`--auto -s lilguys`). Each style can carry a palette (`wave/steel`). Drops come in with a `flash`, and everything else crossfades (3s, or 2s into a build). Set `--transition` or `--blend` to override that. `-P` settings apply to every scene, and each style uses the ones it has (`--auto radial,lilguys -P guys=40`). When two styles share a name, `-P style.setting` sets it for one of them: `-P lilguys.size=1.5 -P radial.glow=2`. Neighbouring sections that get the same style just carry on, so there's no transition between them.
 
 **Settings follow the sections too.** Each style turns its settings down in calm parts, ramps them up through a build and turns them up on the drops. `lilguys` dance harder and fire confetti on drops, `occult` spins faster and glows brighter, the `rhino` charges harder, and so on. A single style (`--auto -s lilguys`) still changes with the track this way. Your own `-P` values and expressions get scaled the same way (`-P dance=2` is 2 at the default level, more on the drops). Settings you automate by hand with time=value points stay as you wrote them. `--no-auto-params` turns it off. Styles say how they scale in a `sections` map (see [Adding your own style](#adding-your-own-style)): multipliers per kind of section, e.g. `drop: { glow: 1.5 }`.
 
