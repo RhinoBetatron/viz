@@ -1,6 +1,6 @@
 {
   "name": "viz",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Turn .wav files into audio-reactive Instagram teaser videos",
   "type": "module",
