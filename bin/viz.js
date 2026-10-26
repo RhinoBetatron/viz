@@ -138,6 +138,7 @@ program
   .option('--analyze', 'find the sections of the track (intro, drops, breakdowns…) and suggest scene changes, without rendering')
   .option('--auto [styles]', 'switch styles automatically at the detected sections: calm,drop[,build] (default vines,occult)')
   .option('--hook [lead]', 'start the clip just before the biggest drop (lead = seconds before it, default 2)', optionalNumber('--hook'))
+  .option('--min-section <bars>', 'shortest section --auto, --analyze and --hook will find, in bars', Number, 4)
   .option('--drums <file>', 'drum stem: kicks and hits come from it, everything else from the main track')
   .option('--fx <list>', `post-effects with optional amounts, e.g. bloom,chroma=2: ${Object.keys(effects).join(', ')}`, parseFx)
   .option('--loop [seconds]', 'seamless loop: crossfade the end into the start (default 1.5s), length rounded to whole bars', optionalNumber('--loop'))
@@ -258,6 +259,7 @@ async function main(input, opts) {
   // Auto scenes only make sense over a whole track, unless a length (or a hook) was asked for.
   if ((opts.auto || opts.analyze) && opts.hook === undefined && opts.end === undefined && program.getOptionValueSource('duration') === 'default') duration = undefined;
   if (duration !== undefined && duration <= 0) program.error('--end must be after --start');
+  if (!(opts.minSection >= 1)) program.error('--min-section takes a number of bars, e.g. --min-section 8');
   if (opts.hw && process.platform !== 'darwin') program.error('--hw uses the Mac video encoder, so it only works on macOS');
   let preset = 'veryfast';
   if (opts.preview) {
@@ -282,7 +284,7 @@ async function main(input, opts) {
     let structure = null;
     if (opts.auto || opts.analyze || opts.hook !== undefined || opts.snap) {
       console.error(`\n▶ ${path.basename(file)}: finding sections…`);
-      structure = await analyzeStructure(file);
+      structure = await analyzeStructure(file, { minBars: opts.minSection });
       printStructure(structure);
     }
 

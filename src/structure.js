@@ -118,7 +118,16 @@ async function findSections(file, minBars) {
     for (const c of cuts) for (let o = -1; o <= 1; o++) votes[(c + o + 400) % 4] += nov[c] * (o === 0 ? 1 : 0.4);
     barPhase = votes.indexOf(Math.max(...votes));
   } else if (grid) barPhase = downbeatOffset(beats, frames);
-  cuts = [...new Set(cuts.map((c) => Math.round((c - barPhase) / beatsPerBar) * beatsPerBar + barPhase))].sort((a, b) => a - b);
+  const snap = (c) => Math.round((c - barPhase) / beatsPerBar) * beatsPerBar + barPhase;
+
+  // Every section is at least `minBars` long, the first and last too, so a
+  // click or count-in at the very start (or a tail at the end) joins the
+  // section next to it instead of becoming one. Strongest cuts win.
+  const kept = [];
+  for (const c of cuts.map(snap)) {
+    if (c >= minGap && beats.length - c >= minGap && kept.every((k) => Math.abs(k - c) >= minGap)) kept.push(c);
+  }
+  cuts = kept.sort((a, b) => a - b);
 
   const bounds = [0, ...cuts, beats.length];
   const sections = [];

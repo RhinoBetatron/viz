@@ -159,6 +159,10 @@ function drawText(ctx, env, title, subtitle, font) {
 
 // ASCII overlay: the finished frame is redrawn as characters, each cell's
 // brightness picking a denser glyph and a lighter grey.
+// Two halves, so the slow part stays off the main thread: sample() shrinks the
+// frame and has skia turn it into pixels in the background, then draw() (called
+// in frame order, as the black point follows the frames) picks the characters
+// and stamps them into the output from glyphs rendered once up front.
 const ASCII_RAMP = ' .:-=+*#%@';
 const ASCII_FONT = 'Menlo, monospace';
 
@@ -169,23 +173,48 @@ function makeAscii(width, height, cell, createCanvas) {
   const cellH = Math.round(fontSize * 1.05);
   const cols = Math.ceil(width / cell), rows = Math.ceil(height / cellH);
   const levels = ASCII_RAMP.length;
-  const greys = Array.from({ length: levels }, (_, i) => {
-    const v = Math.round(40 + 215 * (i / (levels - 1)) ** 0.8);
-    return `rgb(${v},${v},${v})`;
-  });
   const SUB = 3; // 3×3 samples per cell, so thin bright lines aren't averaged away
-  const small = createCanvas(cols * SUB, rows * SUB);
-  const lines = Array.from({ length: levels }, () => new Array(rows));
+  const sw = cols * SUB, sh = rows * SUB;
+
+  // Each character in its grey on black, with room around it for the bits
+  // that reach past the cell (they overlap the neighbours, as text would).
+  const pad = Math.ceil(fontSize * 0.25);
+  const gw = Math.ceil(cell) + pad * 2, gh = Math.ceil(fontSize * 1.3) + pad;
+  const glyphs = [null];
+  for (let l = 1; l < levels; l++) {
+    const v = Math.round(40 + 215 * (l / (levels - 1)) ** 0.8);
+    const g = createCanvas(gw, gh).getContext('2d');
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, gw, gh);
+    g.font = `${fontSize}px ${ASCII_FONT}`;
+    g.textBaseline = 'top';
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    g.fillText(ASCII_RAMP[l], pad, 0);
+    const d = g.getImageData(0, 0, gw, gh).data;
+    const grey = new Uint8Array(gw * gh);
+    for (let i = 0; i < grey.length; i++) grey[i] = d[i * 4];
+    glyphs.push(grey);
+  }
+
   const lums = new Float32Array(cols * rows);
+  const lv = new Uint8Array(cols * rows);
+  const shade = new Uint8Array(width * height);
+  // Grey value → opaque RGBA pixel, as one 32-bit word (byte order of the machine).
+  const word = new Uint32Array(256);
+  const probe8 = new Uint8Array(new Uint32Array([0x01020304]).buffer);
+  for (let v = 0; v < 256; v++) word[v] = probe8[0] === 4 ? (0xff000000 | (v << 16) | (v << 8) | v) >>> 0 : ((v << 24) | (v << 16) | (v << 8) | 0xff) >>> 0;
   let blackPoint = null;
-  return function apply(canvas) {
-    small.width = cols * SUB; // reset the recording, see util.flatten
+
+  function sample(canvas) {
+    const small = createCanvas(sw, sh);
     const sctx = small.getContext('2d');
     sctx.imageSmoothingQuality = 'high';
-    sctx.drawImage(canvas, 0, 0, cols * SUB, rows * SUB);
-    const { data } = sctx.getImageData(0, 0, cols * SUB, rows * SUB);
-    const stride = cols * SUB * 4;
+    sctx.drawImage(canvas, 0, 0, sw, sh);
+    return small.toBuffer('raw');
+  }
 
+  function draw(data, out) {
+    const stride = sw * 4;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         // Brightness = mix of the cell's average and its brightest sample, so
@@ -209,36 +238,41 @@ function makeAscii(width, height, cell, createCanvas) {
     const target = Math.max(0.09, median + 0.05);
     blackPoint = blackPoint === null ? target : blackPoint + (target - blackPoint) * 0.1;
     const range = 1 - blackPoint;
+    for (let k = 0; k < lums.length; k++) {
+      const x = Math.max(0, Math.min(1, ((lums[k] - blackPoint) / range) * 1.1));
+      lv[k] = Math.min(levels - 1, Math.floor(x ** 0.85 * levels));
+    }
 
-    // One string per row per brightness level: spaces everywhere else.
-    const row = new Array(cols);
+    // Stamp the glyphs; where they overlap, the brighter one wins.
+    shade.fill(0);
     for (let r = 0; r < rows; r++) {
-      const lv = new Uint8Array(cols);
+      const y0 = r * cellH;
       for (let c = 0; c < cols; c++) {
-        const x = Math.max(0, Math.min(1, ((lums[r * cols + c] - blackPoint) / range) * 1.1));
-        lv[c] = Math.min(levels - 1, Math.floor(x ** 0.85 * levels));
-      }
-      for (let l = 1; l < levels; l++) {
-        let any = false;
-        for (let c = 0; c < cols; c++) {
-          if (lv[c] === l) { row[c] = ASCII_RAMP[l]; any = true; } else row[c] = ' ';
+        const l = lv[r * cols + c];
+        if (!l) continue;
+        const glyph = glyphs[l], x0 = Math.round(c * cell) - pad;
+        const ya = Math.max(0, -y0), yb = Math.min(gh, height - y0);
+        const xa = Math.max(0, -x0), xb = Math.min(gw, width - x0);
+        for (let gy = ya; gy < yb; gy++) {
+          const row = (y0 + gy) * width + x0, grow = gy * gw;
+          for (let gx = xa; gx < xb; gx++) {
+            const v = glyph[grow + gx];
+            if (v > shade[row + gx]) shade[row + gx] = v;
+          }
         }
-        lines[l][r] = any ? row.join('') : null;
       }
     }
 
-    canvas.width = width;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
-    ctx.font = `${fontSize}px ${ASCII_FONT}`;
-    ctx.textBaseline = 'top';
-    for (let l = 1; l < levels; l++) {
-      ctx.fillStyle = greys[l];
-      for (let r = 0; r < rows; r++) if (lines[l][r]) ctx.fillText(lines[l][r], 0, r * cellH);
-    }
+    out.width = width;
+    const ctx = out.getContext('2d');
+    const img = ctx.createImageData(width, height);
+    const px = new Uint32Array(img.data.buffer, img.data.byteOffset, width * height);
+    for (let i = 0; i < px.length; i++) px[i] = word[shade[i]];
+    ctx.putImageData(img, 0, 0);
     return ctx;
-  };
+  }
+
+  return { sample, draw };
 }
 
 export const transitions = ['fade', 'black', 'flash', 'cut', 'wipe', 'zoom', 'glitch', 'kick'];
@@ -500,6 +534,9 @@ export async function render(opts) {
   // several frames at a time. Output is identical to doing it one by one.
   const depth = Math.max(2, Math.min(8, os.availableParallelism?.() ?? 4));
   const pending = [];
+  // Enough output canvases that none is reused before its frame is written.
+  const asciiOut = asciiPass ? Array.from({ length: depth + 2 }, () => createCanvas(width, height)) : [];
+  let asciiChain = Promise.resolve();
   const startedAt = Date.now();
 
   try {
@@ -541,24 +578,36 @@ export async function render(opts) {
       }
 
       if (fxPass) ctx = fxPass.apply(canvas, ctx, frame);
-      if (asciiPass) ctx = asciiPass(canvas);
 
       const newer = b && Math.max(mix ?? 0, wipe ?? 0, glitch ?? 0) > 0.5;
       const textScene = newer ? b : a;
       // Keep titles grey too in ASCII mode.
       const textEnv = asciiPass ? { ...textScene.env, palette: { ...textScene.env.palette, text: '#e6e6e6' } } : textScene.env;
-      drawText(ctx, textEnv, title, subtitle, font);
-
-      if (fade) {
-        const t = frame.time;
-        const f = Math.max(t < FADE_IN ? 1 - t / FADE_IN : 0, t > clipDuration - FADE_OUT ? (t - (clipDuration - FADE_OUT)) / FADE_OUT : 0);
+      const t = frame.time;
+      const f = fade ? Math.max(t < FADE_IN ? 1 - t / FADE_IN : 0, t > clipDuration - FADE_OUT ? (t - (clipDuration - FADE_OUT)) / FADE_OUT : 0) : 0;
+      const finish = (c) => {
+        drawText(c, textEnv, title, subtitle, font);
         if (f > 0) {
-          ctx.fillStyle = `rgba(0,0,0,${Math.min(1, f)})`;
-          ctx.fillRect(0, 0, width, height);
+          c.fillStyle = `rgba(0,0,0,${Math.min(1, f)})`;
+          c.fillRect(0, 0, width, height);
         }
-      }
+      };
 
-      pending.push(canvas.toBuffer('raw'));
+      if (asciiPass) {
+        // The shrunk frame turns into pixels in the background; the characters
+        // are worked out in frame order on one of a few output canvases. The
+        // result is wrapped so the next frame doesn't wait for its encode.
+        const shrunk = asciiPass.sample(canvas);
+        const out = asciiOut[frame.index % asciiOut.length];
+        asciiChain = asciiChain.then(() => shrunk).then((data) => {
+          finish(asciiPass.draw(data, out));
+          return { raw: out.toBuffer('raw') };
+        });
+        pending.push(asciiChain.then((r) => r.raw));
+      } else {
+        finish(ctx);
+        pending.push(canvas.toBuffer('raw'));
+      }
       if (pending.length >= depth) await write(await pending.shift());
       onProgress?.(frame.index + 1, frames.length, (Date.now() - startedAt) / 1000);
     }

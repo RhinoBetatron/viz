@@ -303,6 +303,7 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--fx <list>` | Post-effects with optional strengths: `bloom` `chroma` `vhs` `scanlines` `vignette` `shake`, e.g. `bloom,shake=2`, see [--fx](#post-effects---fx) | |
 | `--loop [sec]` | Seamless loop: crossfade the end into the start, length rounded to whole bars, see [--loop](#seamless-loops---loop) | off (`1.5` when given) |
 | `--transition <type>` | `fade`, `black`, `flash`, `cut`, `wipe`, `zoom`, `glitch`, `kick`, see [transitions](#scenes-blending-between-styles) | `fade` |
+| `--min-section <bars>` | Shortest section `--analyze`, `--auto` and `--hook` will find. Raise it if short bits (a click at the start, a fill) become sections | `4` |
 | `--snap <unit>` | Move `--scene` times onto the nearest `bar` (or `beat`) of the [beat grid](#the-beat-grid) | |
 | `--fps <n>` | Frame rate (`60` = smoother, takes twice as long) | `30` |
 | `--crf <n>` | Quality: 14 = near-lossless, 23 = smaller file | `16` |
@@ -1100,6 +1101,7 @@ viz track.wav -d all -s vines \
 **Tips:**
 - Use `--analyze` first. The printed command is a good starting point: copy it, adjust a time, or add per-scene settings (`symbol=inverted`, `pregrow=0`…).
 - With `--start`/`-d`, `--auto` only uses the changes inside that window, and opens on the style for whatever section the clip starts in.
+- Every section is at least 4 bars long, the first and last too, so a click or count-in at the very start joins the intro instead of becoming its own section. `--min-section 8` asks for longer sections, `--min-section 2` allows shorter ones.
 - It works best on music with a clear beat and contrast between sections (most electronic music). Ambient tracks or tracks that stay at one level may come out as one long section. Then use `--scene` by hand.
 - Works on folders too: `viz FOLDER --auto` analyses each track separately.
 

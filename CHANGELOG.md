@@ -7,6 +7,11 @@
 - **`--hw`** encodes on the Mac's video hardware. It's faster still and leaves the CPU free for drawing, but makes bigger files.
 - The whole-track analysis (beat grid and sections) is cached in `~/.cache/viz`. Rendering the same track again starts about 2 seconds sooner, and `--auto`/`--hook` about 3 seconds sooner. A changed track is analysed again.
 - The track's beat grid is worked out while the clip is analysed, and the analysis itself is about 30% faster.
+- `--ascii` is about 2.5× faster. The character image is built from glyphs drawn once, and the frame it's made from is drawn in the background like any other.
+
+### Sections
+- Sections found by `--analyze`, `--auto` and `--hook` are at least 4 bars long, the first and last too. A click or a recorder switching on at the very start no longer becomes a section of its own.
+- **`--min-section <bars>`** sets that length.
 
 ## 0.5 (2026-10-26)
 
