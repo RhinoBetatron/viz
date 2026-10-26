@@ -110,7 +110,7 @@ const program = new Command();
 program
   .name('viz')
   .description('Turn audio into audio-reactive teaser videos for Instagram')
-  .version('0.4.0')
+  .version('0.5.0')
   .argument('[input]', 'audio file (.wav, .aiff, .flac, .mp3), a folder of them, or a .csv/.json batch file')
   .option('-s, --style <name>', `visual style: ${Object.keys(styles).join(', ')}`, 'bars')
   .option('-o, --output <file>', 'output .mp4 (default: <input>_<style>.mp4 next to the input)')
@@ -360,13 +360,30 @@ function randomLook(input, opts, seed, given, drawings) {
   const random = rng(seed);
   const pick = (list) => list[Math.floor(random() * list.length)];
   const chosen = [];
+  const argv = process.argv.slice(2);
   // Without a picture the photo style has nothing to work on; with one, keep it.
-  if (!given('style') && !opts.image && !drawings.length) opts.style = pick(Object.keys(styles).filter((n) => n !== 'photo' && n !== 'svg'));
-  chosen.push('-s', opts.style);
-  const style = styles[opts.style];
-  if (!style) return; // reported by the caller
+  // Drawings are listed under their own names, so 'svg' would only repeat one.
+  const pool = Object.keys(styles).filter((n) => n !== 'svg' && (n !== 'photo' || opts.image));
+  // A bare --auto would fall back to vines,occult, so pick its styles instead.
+  // The settings below belong to one style, so they're left alone here.
+  if (opts.auto === true) {
+    const list = [];
+    for (let k = random() < 0.3 ? 3 : 2; list.length < k;) {
+      const name = pick(pool);
+      if (!list.includes(name)) list.push(name);
+    }
+    opts.auto = list.join(',');
+    argv.splice(argv.indexOf('--auto') + 1, 0, opts.auto);
+  }
+  let style = null;
+  if (typeof opts.auto !== 'string') {
+    if (!given('style') && !opts.image && !drawings.length) opts.style = pick(pool);
+    chosen.push('-s', opts.style);
+    style = styles[opts.style];
+    if (!style) return; // reported by the caller
+  }
   // A style with named presets (photo) gets one picked too.
-  if (style.presets && !('preset' in opts.param)) {
+  if (style?.presets && !('preset' in opts.param)) {
     opts.param.preset = pick(style.presets);
     chosen.push('-P', `preset=${opts.param.preset}`);
   }
@@ -374,7 +391,7 @@ function randomLook(input, opts, seed, given, drawings) {
   if (opts.palette && !given('palette')) chosen.push('-p', opts.palette);
   // Nudge about half the numeric settings, between half and double (inside
   // a pack param's limits).
-  for (const [k, v] of Object.entries(style.params ?? {})) {
+  for (const [k, v] of Object.entries(style?.params ?? {})) {
     if (k in opts.param || typeof v !== 'number' || v === 0 || random() < 0.5) continue;
     const { min = -Infinity, max = Infinity } = style.paramInfo?.[k] ?? {};
     const value = Math.min(max, Math.max(min, Number.isInteger(v) && v > 1 ? Math.max(1, Math.round(v * (0.5 + random() * 1.3))) : +(v * 2 ** (random() * 2 - 1)).toFixed(3)));
@@ -391,7 +408,6 @@ function randomLook(input, opts, seed, given, drawings) {
     chosen.push('--grain', String(opts.grain));
   }
   // The command as typed, minus --random, plus what was picked.
-  const argv = process.argv.slice(2);
   const at = argv.indexOf('--random');
   argv.splice(at, /^\d+$/.test(argv[at + 1] ?? '') ? 2 : 1);
   const quote = (a) => (/^[\w./:=,+@-]+$/.test(a) ? a : `"${a.replace(/(["\\$`])/g, '\\$1')}"`);

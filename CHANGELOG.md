@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5 (2026-10-26)
 
 ### SVG mode
 - **`--svg logo.svg`** moves a drawing with the music, shape by shape. It picks the drawing's style on its own, or works as a scene (`--scene +8=svg`) next to any other style. `--svg` can be given several times, one style per drawing.
@@ -21,6 +21,9 @@
 - Reads paths, basic shapes, groups and `<use>`, with colours from attributes, `style=""` and `<style>` blocks, and linear and radial gradients. Text, images, masks and clip paths are left out, with a note.
 - Works with titles, `--fx`, `-g`, `--ascii`, `--loop`, `--hook`, `--watch` (which also watches the SVG and pack), `--random` and batch files (an `svg` column).
 - Demo files: `docs/logo.svg`, plus `docs/demo.svg` with `docs/demo.viz.json`.
+
+### Fixes
+- `--random` with a bare `--auto` now picks the styles for the calm parts and the drops. Before, `--auto` always fell back to `vines,occult` and threw the random style away.
 
 ## 0.4 (2026-10-22)
 

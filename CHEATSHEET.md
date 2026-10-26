@@ -1271,7 +1271,7 @@ viz track.wav -s kraken --random --preview        # keep the style, randomise th
 viz track.wav --random 4821                       # the same random look again
 ```
 
-Anything you set yourself stays as it is. The rest is picked at random: style, palette (half the time the style's own), about half the number settings (between half and double their default), sometimes effects and grain. It prints the full command for the look, so you can render it properly or tweak it. The filename gets `_r<seed>`.
+Anything you set yourself stays as it is. The rest is picked at random: style, palette (half the time the style's own), about half the number settings (between half and double their default), sometimes effects and grain. It prints the full command for the look, so you can render it properly or tweak it. With a bare `--auto` it picks the styles for the calm parts and the drops too (`--auto vines,kraken --random` keeps yours). The filename gets `_r<seed>`.
 
 ### Batch files: a whole release campaign
 
