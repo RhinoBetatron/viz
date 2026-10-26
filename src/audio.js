@@ -107,7 +107,7 @@ export async function analyze(file, { start = 0, duration, fps = 30, bins = 128,
     const from = center - FFT_SIZE / 2;
     for (let i = 0; i < FFT_SIZE; i++) input[i] = (samples[from + i] ?? 0) * hann[i];
     fft.realTransform(out, input);
-    for (let i = 0; i < half; i++) mags[i] = Math.hypot(out[2 * i], out[2 * i + 1]);
+    for (let i = 0; i < half; i++) { const re = out[2 * i], im = out[2 * i + 1]; mags[i] = Math.sqrt(re * re + im * im); }
 
     for (let k = 0; k < bins; k++) {
       let m = 0;

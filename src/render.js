@@ -43,19 +43,25 @@ function runFfmpeg(args, { stdin = false } = {}) {
 
 const rawInput = ({ width, height, fps }) => ['-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${width}x${height}`, '-r', String(fps), '-i', 'pipe:0'];
 const BT709 = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709'];
-const outputArgs = ({ crf, preset }) => [
-  '-c:v', 'libx264', '-preset', preset, '-crf', String(crf), '-profile:v', 'high', ...BT709,
+// x264 on the CPU, or (hw) the Mac's VideoToolbox encoder, which is faster and
+// leaves the CPU to the drawing but needs more bits for the same quality. Its
+// quality scale runs the other way; this maps --crf onto it roughly.
+const outputArgs = ({ crf, preset, hw }) => [
+  ...(hw
+    ? ['-c:v', 'h264_videotoolbox', '-q:v', String(Math.round(Math.min(100, Math.max(1, 100 - 1.6 * crf))))]
+    : ['-c:v', 'libx264', '-preset', preset, '-crf', String(crf)]),
+  '-profile:v', 'high', ...BT709,
   '-c:a', 'aac', '-b:a', '320k', '-ar', '48000',
 ];
 
 // Frames in, finished MP4 out, with the audio cut from the track.
-function encoder({ input, output, width, height, fps, start, duration, fade, crf, preset, grayscale, grain }) {
+function encoder({ input, output, width, height, fps, start, duration, fade, crf, preset, hw, grayscale, grain }) {
   const args = [
     ...rawInput({ width, height, fps }),
     '-ss', String(start), '-t', String(duration), '-i', input,
     '-map', '0:v', '-map', '1:a',
     '-vf', videoFilters({ grayscale, grain }),
-    ...outputArgs({ crf, preset }),
+    ...outputArgs({ crf, preset, hw }),
   ];
   if (fade) args.push('-af', `afade=t=in:d=${FADE_IN},afade=t=out:st=${Math.max(0, duration - FADE_OUT)}:d=${FADE_OUT}`);
   args.push('-t', String(duration), '-movflags', '+faststart', output);
@@ -73,7 +79,7 @@ function loopSource({ file, width, height, fps, preset }) {
 // --loop, pass 2: the rendered source runs `out + overlap` frames. The last
 // `overlap` frames are crossfaded into the first ones (picture and sound), so
 // the clip's end flows straight back into its start.
-function loopFinish({ file, input, output, fps, start, out, overlap, crf, preset, grayscale, grain }) {
+function loopFinish({ file, input, output, fps, start, out, overlap, crf, preset, hw, grayscale, grain }) {
   const D = out / fps, L = overlap / fps;
   const post = videoFilters({ grayscale, grain }).split(',').slice(1).join(','); // already BT.709 from pass 1
   const graph = [
@@ -93,7 +99,7 @@ function loopFinish({ file, input, output, fps, start, out, overlap, crf, preset
   return runFfmpeg([
     '-r', String(fps), '-i', file, '-ss', String(start), '-t', String(D + L), '-i', input,
     '-filter_complex', graph, '-map', '[v]', '-map', '[a]', '-r', String(fps),
-    ...outputArgs({ crf, preset }), '-t', String(D), '-movflags', '+faststart', output,
+    ...outputArgs({ crf, preset, hw }), '-t', String(D), '-movflags', '+faststart', output,
   ]).done;
 }
 
@@ -338,7 +344,7 @@ export async function render(opts) {
   const {
     input, output, width, height, fps = 30, start = 0, duration,
     cover: coverPath, image: imagePath, background, title, subtitle, scenes: sceneSpecs,
-    fade: wantFade = true, crf = 18, preset = 'medium', seed = 1, grayscale = false, grain, ascii = 0,
+    fade: wantFade = true, crf = 16, preset = 'veryfast', hw = false, seed = 1, grayscale = false, grain, ascii = 0,
     fx = {}, loop = 0, drums, grid: givenGrid,
     font = '"Helvetica Neue", Helvetica, Arial, sans-serif', gpu = false, onStage, onProgress,
   } = opts;
@@ -348,6 +354,11 @@ export async function render(opts) {
   // A loop renders past the end to crossfade from, plus room to round the
   // length to whole bars.
   const want = duration === undefined ? undefined : duration + (loop ? loop + 4 : 0);
+  // Beat grid from the whole track (a clip alone is too short to be sure of
+  // the tempo), so it lines up with --snap and --hook too. Worked out alongside
+  // the clip's own analysis.
+  const gridJob = givenGrid !== undefined ? Promise.resolve(givenGrid) : trackGrid(input);
+  gridJob.catch(() => {}); // awaited below
   const analysis = await analyze(input, { start, duration: want, fps });
   if (drums) {
     // Hits and the kick pulse come from the drum stem; everything else from the mix.
@@ -362,9 +373,7 @@ export async function render(opts) {
     });
     analysis.stats = d.stats;
   }
-  // Beat grid from the whole track (a clip alone is too short to be sure of
-  // the tempo), so it lines up with --snap and --hook too.
-  const grid = givenGrid !== undefined ? givenGrid : await trackGrid(input);
+  const grid = await gridJob;
 
   // Frames in the finished video, and (for --loop) how many more get rendered
   // past them to crossfade back into the start.
@@ -480,7 +489,7 @@ export async function render(opts) {
   const sink = loop
     ? loopSource({ file: loopFile, width, height, fps, preset })
     : encoder({
-      input, output, width, height, fps, start, duration: clipDuration, fade, crf, preset,
+      input, output, width, height, fps, start, duration: clipDuration, fade, crf, preset, hw,
       grayscale, grain: grain ?? (grayscale ? 10 : 0),
     });
   const write = async (buf) => {
@@ -560,7 +569,7 @@ export async function render(opts) {
     if (loop) {
       onStage?.('Joining the loop');
       await loopFinish({
-        file: loopFile, input, output, fps, start, out: outFrames, overlap, crf, preset,
+        file: loopFile, input, output, fps, start, out: outFrames, overlap, crf, preset, hw,
         grayscale, grain: grain ?? (grayscale ? 10 : 0),
       });
     }

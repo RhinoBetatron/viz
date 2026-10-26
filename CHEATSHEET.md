@@ -305,11 +305,12 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 | `--transition <type>` | `fade`, `black`, `flash`, `cut`, `wipe`, `zoom`, `glitch`, `kick`, see [transitions](#scenes-blending-between-styles) | `fade` |
 | `--snap <unit>` | Move `--scene` times onto the nearest `bar` (or `beat`) of the [beat grid](#the-beat-grid) | |
 | `--fps <n>` | Frame rate (`60` = smoother, takes twice as long) | `30` |
-| `--crf <n>` | Quality: 16 = near-lossless, 23 = smaller file | `18` |
+| `--crf <n>` | Quality: 14 = near-lossless, 23 = smaller file | `16` |
 | `--seed <n>` | Changes the randomness in styles that use it (`particles`, floating symbols…) | `1` |
 | `--no-fade` | No fade in/out on picture and sound | fades on |
 | `--preview` | Quick half-res 5s draft (`*_preview.mp4`) to check the look. With `--scene` it keeps the full length so you can see the changes | |
 | `--gpu` | Render on the GPU (try it if heavy styles feel slow) | off |
+| `--hw` | Encode on the Mac's video hardware: faster and leaves the CPU free for drawing, but files come out bigger (macOS only) | off |
 | `--open` | Open the video when it's done | |
 | `--watch` | Keep running and re-render a preview whenever a file in `src/`, the track or the cover changes | |
 | `--random [seed]` | Random style, palette, settings and effects for whatever you didn't set. Prints the command to get it again | |
@@ -1606,6 +1607,7 @@ bin/viz.js          CLI: options, folders, batch files, --watch, --random, --hoo
 src/audio.js        ffmpeg decode → FFT, bands, loudness, onset/kick detection per frame
 src/structure.js    section finder for --analyze / --auto / --hook (novelty, energy labels)
 src/beats.js        tempo, beat grid, downbeats, --snap
+src/cache.js        on-disk cache of whole-track analysis (~/.cache/viz)
 src/render.js       frame loop: background → style → transitions → fx → text → fades → ffmpeg (+ --loop join)
 src/fx.js           --fx post-effects
 src/modulate.js     -P expressions (glow=1+pulse*3)
@@ -1625,7 +1627,7 @@ src/styles/*.js     one file per style (photo.js is photo mode)
 | `viz: command not found` | Run `npm link` in this folder, or use `node bin/viz.js …` |
 | `No audio found … at --start` | The start time is past the end of the track |
 | Visuals feel sluggish or jumpy | Try `--fps 60`, or tweak the style's `glow`/`trail`/`drag` params |
-| Render is slow | Use `--preview` while experimenting. Frames are already rasterised in parallel; `--gpu` can help further on heavy styles. `--loop` and `bloom`/`chroma` add time |
+| Render is slow | Use `--preview` while experimenting. Frames are already rasterised in parallel. `--hw` encodes on the Mac's video hardware, which helps most with light styles; `--gpu` can help on heavy ones. `--loop` and `bloom`/`chroma` add time. The first render of a track analyses all of it for the beat grid (a second or two); later renders of the same track reuse that from `~/.cache/viz` |
 | BPM is half or double what it should be | The grid had to choose between half-time and full-time. Only bar-based things are affected: halve or double `cycle` with `-P on=bar`; `--loop` still lands on bar lines |
 | `--hook` picks the wrong drop | Run `--analyze` to see the sections, then use `--start` with the time you want |
 | `-P` value gives "doesn't use any of" | It looks like an expression but has no signal in it: check the spelling (`bass`, not `bas`) |

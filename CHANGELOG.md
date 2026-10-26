@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Faster renders
+- Encoding is about 2.5× faster: x264 now uses the `veryfast` preset, and the default `--crf` moves from 18 to 16 to keep the same picture quality. Files come out about 25% bigger. Light styles render about a third faster overall.
+- **`--hw`** encodes on the Mac's video hardware. It's faster still and leaves the CPU free for drawing, but makes bigger files.
+- The whole-track analysis (beat grid and sections) is cached in `~/.cache/viz`. Rendering the same track again starts about 2 seconds sooner, and `--auto`/`--hook` about 3 seconds sooner. A changed track is analysed again.
+- The track's beat grid is worked out while the clip is analysed, and the analysis itself is about 30% faster.
+
 ## 0.5 (2026-10-26)
 
 ### SVG mode

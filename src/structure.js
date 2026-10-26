@@ -8,6 +8,7 @@
 //   5. sections are rated by energy and split into calm / intense
 import { analyze } from './audio.js';
 import { findBeats, downbeatOffset, mean, smooth } from './beats.js';
+import { cached } from './cache.js';
 
 const FPS = 40;           // analysis resolution (25ms)
 const KERNEL = 16;        // beats each side of the novelty kernel (4 bars)
@@ -57,7 +58,12 @@ function splitEnergy(sections) {
   return best && best.gap > 0.12 ? best.threshold : Infinity;
 }
 
-export async function analyzeStructure(file, { minBars = 4 } = {}) {
+// Cached per track (see cache.js).
+export function analyzeStructure(file, { minBars = 4 } = {}) {
+  return cached(`sections${minBars}`, file, () => findSections(file, minBars));
+}
+
+async function findSections(file, minBars) {
   const { frames, duration } = await analyze(file, { fps: FPS });
   const n = frames.length;
   const grid = findBeats(frames.map((f) => f.onsetStrength + f.kickStrength), FPS);

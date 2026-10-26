@@ -142,11 +142,12 @@ program
   .option('--fx <list>', `post-effects with optional amounts, e.g. bloom,chroma=2: ${Object.keys(effects).join(', ')}`, parseFx)
   .option('--loop [seconds]', 'seamless loop: crossfade the end into the start (default 1.5s), length rounded to whole bars', optionalNumber('--loop'))
   .option('--fps <n>', 'frames per second', Number, 30)
-  .option('--crf <n>', 'video quality, lower = better/bigger (16–23)', Number, 18)
+  .option('--crf <n>', 'video quality, lower = better/bigger (14–23)', Number, 16)
   .option('--seed <n>', 'random seed for styles with randomness', Number, 1)
   .option('--no-fade', 'disable the fade in/out on audio and video')
   .option('--preview', 'fast low-res 5s draft to check the look')
   .option('--gpu', 'render on the GPU (can be faster for heavy styles)')
+  .option('--hw', "encode on the Mac's video hardware: faster, bigger files")
   .option('--open', 'open the video when done')
   .option('--watch', 'keep running: re-render a preview whenever a style file, the track, the cover or the image changes')
   .option('--random [seed]', 'random style, palette, settings and effects; prints the command to get it again')
@@ -257,7 +258,8 @@ async function main(input, opts) {
   // Auto scenes only make sense over a whole track, unless a length (or a hook) was asked for.
   if ((opts.auto || opts.analyze) && opts.hook === undefined && opts.end === undefined && program.getOptionValueSource('duration') === 'default') duration = undefined;
   if (duration !== undefined && duration <= 0) program.error('--end must be after --start');
-  let preset = 'medium';
+  if (opts.hw && process.platform !== 'darwin') program.error('--hw uses the Mac video encoder, so it only works on macOS');
+  let preset = 'veryfast';
   if (opts.preview) {
     width = Math.round(width / 4) * 2;
     height = Math.round(height / 4) * 2;
@@ -319,7 +321,7 @@ async function main(input, opts) {
       input: file, output, scenes, width, height, duration, preset,
       fps: opts.fps, start, cover: opts.cover, image: opts.image, background: opts.bg,
       title: opts.title, subtitle: opts.subtitle, font: opts.font,
-      fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, grayscale: opts.grayscale, grain: opts.grain,
+      fade: opts.fade, crf: opts.crf, ascii, seed: opts.seed, gpu: opts.gpu, hw: opts.hw, grayscale: opts.grayscale, grain: opts.grain,
       fx: opts.fx, loop, drums: opts.drums, grid: structure?.grid,
       onStage: (s) => s !== 'Rendering' && console.error(`  ${s}…`),
       onProgress: progressBar,

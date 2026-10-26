@@ -7,6 +7,7 @@
 // any clip cut from it.
 
 import { analyze } from './audio.js';
+import { cached } from './cache.js';
 
 export const BEATS_PER_BAR = 4;
 
@@ -109,11 +110,13 @@ export function gridFromFrames(frames, fps, start = 0) {
   };
 }
 
-// Grid for a whole track (or a drum stem of it).
-export async function trackGrid(file) {
-  const fps = 40;
-  const { frames } = await analyze(file, { fps, bins: 32 });
-  return gridFromFrames(frames, fps, 0);
+// Grid for a whole track (or a drum stem of it), cached per track.
+export function trackGrid(file) {
+  return cached('grid', file, async () => {
+    const fps = 40;
+    const { frames } = await analyze(file, { fps, bins: 32 });
+    return gridFromFrames(frames, fps, 0);
+  });
 }
 
 const mod = (a, n) => ((a % n) + n) % n;
