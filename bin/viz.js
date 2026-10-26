@@ -110,7 +110,7 @@ const program = new Command();
 program
   .name('viz')
   .description('Turn audio into audio-reactive teaser videos for Instagram')
-  .version('0.5.0')
+  .version('0.6.0')
   .argument('[input]', 'audio file (.wav, .aiff, .flac, .mp3), a folder of them, or a .csv/.json batch file')
   .option('-s, --style <name>', `visual style: ${Object.keys(styles).join(', ')}`, 'bars')
   .option('-o, --output <file>', 'output .mp4 (default: <input>_<style>.mp4 next to the input)')

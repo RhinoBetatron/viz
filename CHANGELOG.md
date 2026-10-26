@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6 (2026-10-26)
 
 ### Faster renders
 - Encoding is about 2.5× faster: x264 now uses the `veryfast` preset, and the default `--crf` moves from 18 to 16 to keep the same picture quality. Files come out about 25% bigger. Light styles render about a third faster overall.
