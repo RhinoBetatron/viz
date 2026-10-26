@@ -127,6 +127,9 @@ viz TRACK.wav -s temple -d 20 --open
 viz TRACK.wav --start 0:40 -d 40 -s temple --scene +8=medusa,transition=kick --scene +16=labyrinth,transition=zoom \
   --scene +24=hydra,transition=kick --scene +32=pegasus,transition=flash --open
 
+# Lil guys: a crowd of googly-eyed guys dancing on a disco floor, hopping on the kicks
+viz TRACK.wav -s lilguys --hook -d 20 --open
+
 # Photo: your photo torn apart with the music, coming apart as the track goes on
 viz TRACK.wav --image photo.jpg -d 20 --open
 
@@ -275,14 +278,14 @@ viz TRACK.wav -f landscape -d all -g -s wave --scene 2:00=industrial,blend=4
 
 | Option | What it does | Default |
 |---|---|---|
-| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo`, `svg` | `bars` |
+| `-s, --style <name>` | Visual style: `bars`, `radial`, `wave`, `particles`, `occult`, `industrial`, `vines`, `hands`, `ghostship`, `lighthouse`, `kraken`, `abyss`, `aurora`, `maelstrom`, `drowned`, `marsh`, `gallows`, `shadows`, `reactor`, `rhino`, `temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `lilguys`, `photo`, `svg` | `bars` |
 | `-o, --output <file>` | Output path | `<input>_<style>.mp4` |
 | `-f, --format <name>` | `reel` 1080×1920 · `feed` 1080×1350 · `square` 1080×1080 · `landscape` 1920×1080 | `reel` |
 | `--size <WxH>` | Custom resolution, e.g. `720x1280` (overrides `--format`) | |
 | `--start <time>` | Where the clip starts: `72`, `1:12`, `1:12.5` | `0` |
 | `-d, --duration <time>` | Clip length: `20`, `0:30`, or `all` for the rest of the track | `15` |
 | `--end <time>` | Where the clip ends (use instead of `--duration`) | |
-| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `aegean` `gorgon` `minoan` `lerna` `olympus` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`, `aegean` for `temple`, `gorgon` for `medusa`, `minoan` for `labyrinth`, `lerna` for `hydra`, `olympus` for `pegasus`) |
+| `-p, --palette <name>` | `neon` `sunset` `ice` `acid` `mono` `vapor` `ember` `gloom` `blood` `candle` `hazard` `steel` `verdant` `spectral` `savanna` `aegean` `gorgon` `minoan` `lerna` `olympus` `party` `auto` | `neon` (`auto` with `--cover`, `gloom` with `-g`, the style's own otherwise: `blood` for `occult` `drowned`, `hazard` for `industrial` `reactor`, `verdant` for `vines` `marsh`, `gloom` for `hands` `gallows` `shadows`, `spectral` for `ghostship` `lighthouse` `kraken` `abyss` `aurora` `maelstrom`, `savanna` for `rhino`, `aegean` for `temple`, `gorgon` for `medusa`, `minoan` for `labyrinth`, `lerna` for `hydra`, `olympus` for `pegasus`, `party` for `lilguys`) |
 | `-g, --grayscale` | Black & white, darker and higher contrast, with light film grain. Applies to everything, cover art included | off |
 | `--ascii [size]` | Redraw everything as greyscale ASCII art. Optional character size in px at 1080p, see [ASCII mode](#ascii-mode---ascii) | off (`10` when given) |
 | `--grain <n>` | Film grain, 0–30. Works with colour too | `10` with `-g`, else `0` |
@@ -349,6 +352,7 @@ Styles that share a palette are made to go together. Each family has a calm styl
 | `minoan` (torchlit terracotta) | `labyrinth` | |
 | `lerna` (swamp violet, venom green) | `hydra` | |
 | `olympus` (dusk gold) | `pegasus` | |
+| `party` (candy colours on deep purple) | `lilguys` | Bright and cheerful on any style: `-s particles -p party` |
 
 The Greek styles (`temple`, `medusa`, `labyrinth`, `hydra`, `pegasus`, `photo`) each bring their own palette and keep it when you chain them, so they tell one myth together: `--auto temple,hydra,labyrinth` (calm temple, the hydra on the drops, the labyrinth on the builds), or all five with `--scene`, as in the ready-made command above.
 
@@ -794,6 +798,24 @@ Pegasus flying over a sea of clouds towards Olympus at dusk, the gods' temple gl
 | `sparkle` | 1 | Golden dust from the wings, 0 = none |
 | `mountain` | 1 | Size of Olympus in the distance, 0 = none |
 | `glow` | 1 | Glow on the horse, the bolts and the sparkle |
+
+### `lilguys`: lil guys dancing
+
+<img src="docs/gifs/lilguys.gif" width="260" alt="lilguys style">
+
+A crowd of little bean-shaped guys with googly eyes, noodle limbs and hats (party hats, antennas, sprouts, tufts, bows, beanies, top hats) dancing on a disco floor under a mirror ball. Each one does his own quirky move in time with the [beat grid](#the-beat-grid): `bounce`, `chicken`, `wave`, `robot`, `spin`, `airguitar`, `shuffle`, `jacks`, `disco` and a floppy `noodle`, switching every couple of bars. Each guy listens to his own slice of the spectrum, so they get more into it when their part of the music is loud, and barely bop in the quiet parts. On the kicks they hop (the odd one does a flip), their pupils wobble behind their heads, and they blink and look around. On loud parts the whole crowd can sync up into one move, rippling across the floor, and big hits fire confetti. The floor tiles light up in a checker that moves on every beat, and the ball throws beams and sparkles. Uses the `party` palette unless you pass `-p` (try `-p vapor`, `-p acid` or `-g`).
+
+| param | default | |
+|---|---|---|
+| `guys` | 14 | How many lil guys (1–40) |
+| `size` | 1 | Size of the guys |
+| `dance` | 1 | How wild the moves get, 0 = just standing there |
+| `hop` | 1 | Hops (and the odd flip) on the kicks, 0 = none |
+| `sync` | 1 | How readily the crowd syncs into one move on loud parts, 0 = never |
+| `confetti` | 1 | Confetti bursts on big hits, 0 = none |
+| `floor` | 1 | Disco floor tiles lighting up with the spectrum, 0 = plain floor |
+| `disco` | 1 | Mirror ball, light beams and sparkles, 0 = off |
+| `googly` | 1 | How much the pupils wobble |
 
 ---
 
@@ -1468,6 +1490,9 @@ viz track.wav -s hydra -p blood -P snap=2                  # blood-red, vicious
 viz track.wav -s pegasus                                   # flying to Olympus, wings on the beat
 viz track.wav -s pegasus -P flap=1 -P lightning=2          # beating every beat in a lightning storm
 viz track.wav -s pegasus -p ember -P "flap=0.25+0.75*rms"  # wings beat harder when it's loud
+viz track.wav -s lilguys                                   # lil guys dancing on a disco floor
+viz track.wav -s lilguys -P guys=30 -P dance=1.5 -p vapor  # a packed, wilder dance floor
+viz track.wav -s lilguys -P sync=2 --hook                  # the whole crowd in sync on the drop
 
 # Photo mode
 viz track.wav --image photo.jpg                            # mix: the photo comes apart over the clip

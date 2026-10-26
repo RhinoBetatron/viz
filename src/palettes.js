@@ -22,6 +22,7 @@ export const palettes = {
   minoan:  { bg: ['#070504', '#1a100a'], colors: ['#3b2416', '#b8582a', '#f0c070'], accent: '#ff3d2e', text: '#f6e6cc' },
   lerna:   { bg: ['#05030a', '#150b24'], colors: ['#2a1640', '#6b3fa0', '#c9a8ff'], accent: '#7dff6a', text: '#efe6ff' },
   olympus: { bg: ['#0c1030', '#33285a'], colors: ['#454a86', '#e3995a', '#ffe3ac'], accent: '#ffd36a', text: '#fff7ea' },
+  party:   { bg: ['#140726', '#2d0f4a'], colors: ['#ff5d8f', '#ffb703', '#3ddc97', '#4cc9f0', '#b388ff'], accent: '#ffe066', text: '#ffffff' },
 };
 
 export function hexToRgb(hex) {

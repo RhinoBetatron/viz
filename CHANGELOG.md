@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### New style
+- `lilguys`: a crowd of little googly-eyed guys dancing quirky moves on a disco floor under a mirror ball. Each has his own move (bounce, chicken, wave, robot, spin, air guitar, shuffle, jumping jacks, disco, noodle) and his own slice of the spectrum. They hop on the kicks, sync up into a ripple on loud parts, and big hits fire confetti (`party` palette).
+
 ## 0.6 (2026-10-26)
 
 ### Faster renders
