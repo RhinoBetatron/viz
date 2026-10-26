@@ -1118,7 +1118,7 @@ viz track.wav -d all -s vines \
 | `groove` | medium energy between drops | build (calm if not given) |
 | `outro` | after the last drop | calm |
 
-**`--auto calm,drop[,build]`** renders it directly. The default is `vines,occult`. Each style can carry a palette (`wave/steel`). Drops come in with a `flash`, and everything else crossfades (3s, or 2s into a build). Set `--transition` or `--blend` to override that. `-P` settings apply to every scene. Neighbouring sections that get the same style just carry on, so there's no transition between them.
+**`--auto calm,drop[,build]`** renders it directly. The default is `vines,occult`, unless you pass `-s`: then that style runs through the whole track (`--auto -s lilguys`). Each style can carry a palette (`wave/steel`). Drops come in with a `flash`, and everything else crossfades (3s, or 2s into a build). Set `--transition` or `--blend` to override that. `-P` settings apply to every scene. Neighbouring sections that get the same style just carry on, so there's no transition between them.
 
 **Tips:**
 - Use `--analyze` first. The printed command is a good starting point: copy it, adjust a time, or add per-scene settings (`symbol=inverted`, `pregrow=0`…).

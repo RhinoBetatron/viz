@@ -136,7 +136,7 @@ program
   .option('--transition <type>', `how scenes change: ${transitions.join(', ')}`, 'fade')
   .option('--snap <unit>', 'move --scene times onto the nearest bar (or beat) of the track: bar, beat')
   .option('--analyze', 'find the sections of the track (intro, drops, breakdowns…) and suggest scene changes, without rendering')
-  .option('--auto [styles]', 'switch styles automatically at the detected sections: calm,drop[,build] (default vines,occult)')
+  .option('--auto [styles]', 'switch styles automatically at the detected sections: calm,drop[,build] (default vines,occult, or the -s style throughout)')
   .option('--hook [lead]', 'start the clip just before the biggest drop (lead = seconds before it, default 2)', optionalNumber('--hook'))
   .option('--min-section <bars>', 'shortest section --auto, --analyze and --hook will find, in bars', Number, 4)
   .option('--drums <file>', 'drum stem: kicks and hits come from it, everything else from the main track')
@@ -237,7 +237,10 @@ async function main(input, opts) {
   let roles;
   if (opts.auto || opts.analyze) {
     if (opts.auto && opts.scene.length) program.error('--auto picks the scenes itself, so leave out --scene (or drop --auto)');
-    const list = (typeof opts.auto === 'string' ? opts.auto : 'vines,occult').split(',').map((x) => {
+    // A bare --auto with -s keeps that style for every section (so it runs the
+    // whole track); otherwise it defaults to vines for calm parts, occult for drops.
+    const fallback = opts.auto === true && given('style') ? `${opts.style},${opts.style}` : 'vines,occult';
+    const list = (typeof opts.auto === 'string' ? opts.auto : fallback).split(',').map((x) => {
       const [style, palette] = x.trim().split('/');
       checkStyle(style);
       checkPalette(palette);
@@ -370,7 +373,7 @@ function randomLook(input, opts, seed, given, drawings) {
   const pool = Object.keys(styles).filter((n) => n !== 'svg' && (n !== 'photo' || opts.image));
   // A bare --auto would fall back to vines,occult, so pick its styles instead.
   // The settings below belong to one style, so they're left alone here.
-  if (opts.auto === true) {
+  if (opts.auto === true && !given('style')) {
     const list = [];
     for (let k = random() < 0.3 ? 3 : 2; list.length < k;) {
       const name = pick(pool);
@@ -382,7 +385,7 @@ function randomLook(input, opts, seed, given, drawings) {
   let style = null;
   if (typeof opts.auto !== 'string') {
     if (!given('style') && !opts.image && !drawings.length) opts.style = pick(pool);
-    chosen.push('-s', opts.style);
+    if (!given('style')) chosen.push('-s', opts.style);
     style = styles[opts.style];
     if (!style) return; // reported by the caller
   }
@@ -555,7 +558,7 @@ function autoScenes(sections, roles, start, duration, { blendSet, transitionSet,
   for (const s of sections) {
     if (s.start <= start || s.start >= end) continue;
     const role = roleOf(s), next = roles[role];
-    if (next === current) continue;
+    if (next.style === current.style && next.palette === current.palette) continue; // same look: carry on
     // Snap into drops with a flash; ease out of them.
     const tr = transitionSet ? transition : role === 'drop' ? 'flash' : 'fade';
     changes.push({

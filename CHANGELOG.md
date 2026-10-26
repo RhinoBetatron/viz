@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+- A bare `--auto` with `-s` uses that style through the whole track, instead of ignoring `-s` and rendering `vines,occult`.
+- `--auto` no longer swaps a scene for a fresh copy of the same style when two neighbouring sections get the same look.
+- `--random` no longer repeats `-s` in the command it prints when you gave one.
+
 ## 0.7 (2026-10-26)
 
 ### New style
